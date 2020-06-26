@@ -26,7 +26,7 @@ level_volume(from_i, to_i, lvl_low, lvl_high) =>
 	vol = 0.0
 	for i = from_i to to_i
 		if low[i] < lvl_high and high[i] > lvl_low
-			vol := vol + volume[i] / max(1, (high[i] - low[i]) / (lvl_high - lvl_low)) / 2
+			vol := vol + volume[i] / max(1, (high[i] - low[i]) / (lvl_high - lvl_low))
 		vol
 
 moving_high = highest(high, n_bars)
