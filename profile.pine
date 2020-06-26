@@ -104,7 +104,7 @@ if barstate.islast
 	{% for n in range(n_rows) %}
 	last_lvl{{n}}_low = last_low + last_lvl_height * {{n}}
 	last_lvl{{n}}_high = last_low + last_lvl_height * {{n+1}}
-	last_lvl{{n}}_volume = level_volume(0, last_n_bars, last_lvl{{n}}_low, last_lvl{{n}}_high)
+	last_lvl{{n}}_volume = level_volume(0, last_n_bars+1, last_lvl{{n}}_low, last_lvl{{n}}_high)
 	last_lvl{{n}}_width = min(last_n_bars, floor(n_bars * last_lvl{{n}}_volume / highest_lvl_volume_avg * row_multiplier))
 	last_lvl{{n}}_price = (last_lvl{{n}}_low + last_lvl{{n}}_high) / 2
 	line.new(bar_index - last_n_bars - 1, last_lvl{{n}}_price, bar_index - last_n_bars + last_lvl{{n}}_width - 1, last_lvl{{n}}_price, width=3, color=LAST_BLOCK_COLOR)
