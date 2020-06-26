@@ -1,0 +1,111 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © IldarAkhmetgaleev
+
+//@version=4
+study("Poor man's volume profile", "VPoorof", overlay=true)
+// plot(close)
+
+block_lenght = {{ block_lenght }}
+n_blocks = {{ n_blocks }}
+WIDTH_MULT = 0.6
+
+BOUNDS_COLOR = color.blue
+LAST_BLOCK_COLOR = color.{{last_block_color}}
+{% for color in block_colors %}
+{{color.upper()}}_BLOCK_COLOR = color.{{color}}
+{% endfor %}
+
+////
+// Calculate profiles
+///
+
+body_low = min(open, close)
+body_high = max(open, close)
+
+level_volume(from_i, to_i, lvl_low, lvl_high) =>
+	vol = 0.0
+	for i = from_i to to_i
+		if low[i] < lvl_high and high[i] > lvl_low
+			vol := vol + volume[i] / max(1, (high[i] - low[i]) / (lvl_high - lvl_low)) / 2
+		vol
+
+moving_high = highest(high, block_lenght)
+moving_low = lowest(low, block_lenght)
+
+block_index = floor(bar_index / block_lenght)
+block_bar = bar_index % block_lenght
+block_high = moving_high
+block_low = moving_low
+
+{% for n in range(n_rows) %}
+float lvl{{n}}_low = na
+float lvl{{n}}_high = na
+lvl{{n}}_volume = 0.0
+lvl{{n}}_width = 0
+{% endfor %}
+highest_lvl_volume = 0.0
+
+if block_bar == block_lenght - 1 or barstate.islast
+	lvl_height = (moving_high - moving_low) / {{n_rows}}
+	{% for n in range(n_rows) %}
+	lvl{{n}}_low := moving_low + lvl_height * {{n}}
+	lvl{{n}}_high := moving_low + lvl_height * {{n+1}}
+	lvl{{n}}_volume := level_volume(0, block_bar+1, lvl{{n}}_low, lvl{{n}}_high)
+	highest_lvl_volume := max(highest_lvl_volume, lvl{{n}}_volume)
+	{% endfor %}
+else
+	block_high := fixnan(block_high[1])
+	block_low := fixnan(block_low[1])
+	highest_lvl_volume := highest_lvl_volume[1]
+
+max_bars_back(block_high, 1000)
+max_bars_back(block_low, 1000)
+plot(block_high, color=BOUNDS_COLOR, style=plot.style_stepline, offset=-block_lenght)
+plot(block_low, color=BOUNDS_COLOR, style=plot.style_stepline, offset=-block_lenght)
+
+highest_lvl_volume_avg = sma(highest_lvl_volume, block_lenght * n_blocks)
+
+////
+// Draw blocks
+///
+
+{% for color in block_colors %}
+{% set num_colors = loop.length %}
+{{color}}_block_bar = (block_index + {{loop.index}}) % {{num_colors}} * block_lenght + block_bar
+{{color}}_bar_offset = {{color}}_block_bar + 1
+
+{% for n in range(n_rows) %}
+{{color}}_lvl{{n}}_price = (lvl{{n}}_low[{{color}}_bar_offset] + lvl{{n}}_high[{{color}}_bar_offset]) / 2
+{{color}}_lvl{{n}}_volume = lvl{{n}}_volume[{{color}}_bar_offset]
+{{color}}_lvl{{n}}_width = min({{block_lenght * num_colors - 2}}, floor(block_lenght * {{color}}_lvl{{n}}_volume / highest_lvl_volume_avg * WIDTH_MULT))
+{{color}}_lvl{{n}}_y = {{color}}_block_bar <= {{color}}_lvl{{n}}_width ? {{color}}_lvl{{n}}_price : na
+max_bars_back({{color}}_lvl{{n}}_y, 1000)
+plot({{color}}_lvl{{n}}_y, color={{color.upper()}}_BLOCK_COLOR, style=plot.style_linebr, offset=-block_lenght-1, linewidth=2)
+{% endfor %}
+{% endfor %}
+
+
+////
+// Draw last block
+///
+
+if barstate.islast
+	last_block_lenght = bar_index % block_lenght + block_lenght
+	var last_high = high[0]
+	var last_low = low[0]
+	for i=0 to last_block_lenght
+		last_high := max(high[i], last_high)
+		last_low := min(low[i], last_low)
+	line.new(bar_index - last_block_lenght, last_high, bar_index, last_high, color=BOUNDS_COLOR)
+	line.new(bar_index - last_block_lenght, last_low, bar_index, last_low, color=BOUNDS_COLOR)
+
+	last_lvl_height = (last_high - last_low) / {{n_rows}}
+
+	{% for n in range(n_rows) %}
+	last_lvl{{n}}_low = last_low + last_lvl_height * {{n}}
+	last_lvl{{n}}_high = last_low + last_lvl_height * {{n+1}}
+	last_lvl{{n}}_volume = level_volume(0, last_block_lenght, last_lvl{{n}}_low, last_lvl{{n}}_high)
+	last_lvl{{n}}_width = min(last_block_lenght, floor(block_lenght * last_lvl{{n}}_volume / highest_lvl_volume_avg * WIDTH_MULT))
+	last_lvl{{n}}_price = (last_lvl{{n}}_low + last_lvl{{n}}_high) / 2
+	line.new(bar_index - last_block_lenght - 1, last_lvl{{n}}_price, bar_index - last_block_lenght + last_lvl{{n}}_width - 1, last_lvl{{n}}_price, width=3, color=LAST_BLOCK_COLOR)
+	{% endfor %}
