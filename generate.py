@@ -4,7 +4,6 @@ TEMPLATE_FILE = 'profile.pine'
 params = {
     'n_rows': 10,
     'n_bars': 25,
-    'n_blocks': 20,
     'avg_lenght': 20,
     'row_multiplier': 0.6,
     'block_colors': ['aqua', 'orange'],

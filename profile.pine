@@ -9,7 +9,6 @@ study("Poor man's volume profile", "VPoorof", overlay=true)
 enable_history_profiles = input(true, "Enable history profiles")
 enable_recent_profile = input(true, "Enable recent profiles")
 n_bars = input({{n_bars}}, "Bars per profile block", minval=1)
-n_blocks = input({{n_blocks}}, "Number profile blocks to show", minval=1, maxval=100)
 recent_n_bars = input({{recent_n_bars}}, "Bars in recent profile block", minval=1)
 row_multiplier = input({{row_multiplier}}, "Row width multiplier", minval=0)
 avg_lenght = input({{avg_lenght}}, "Profile maximum smooth average lenght in blocks")
@@ -31,7 +30,6 @@ level_volume(from_i, to_i, lvl_low, lvl_high) =>
 			vol := vol + volume[i] / max(1, (high[i] - low[i]) / (lvl_high - lvl_low))
 		vol
 
-show_last = n_bars * n_blocks
 avg_lenght_bars = n_bars * avg_lenght
 
 moving_high = highest(high, n_bars)
@@ -64,8 +62,8 @@ else
 	block_low := fixnan(block_low[1])
 	highest_lvl_volume := highest_lvl_volume[1]
 
-plot(enable_history_profiles ? block_high : na, color=BOUNDS_COLOR, style=plot.style_stepline, offset=-n_bars, show_last=show_last)
-plot(enable_history_profiles ? block_low : na, color=BOUNDS_COLOR, style=plot.style_stepline, offset=-n_bars, show_last=show_last)
+plot(enable_history_profiles ? block_high : na, color=BOUNDS_COLOR, style=plot.style_stepline, offset=-n_bars)
+plot(enable_history_profiles ? block_low : na, color=BOUNDS_COLOR, style=plot.style_stepline, offset=-n_bars)
 
 highest_lvl_volume_avg = ema(highest_lvl_volume, avg_lenght_bars)
 
@@ -83,7 +81,7 @@ highest_lvl_volume_avg = ema(highest_lvl_volume, avg_lenght_bars)
 {{color}}_lvl{{n}}_volume = lvl{{n}}_volume[{{color}}_bar_offset]
 {{color}}_lvl{{n}}_width = min({{n_bars * num_colors - 2}}, floor(n_bars * {{color}}_lvl{{n}}_volume / highest_lvl_volume_avg * row_multiplier))
 {{color}}_lvl{{n}}_y = enable_history_profiles and {{color}}_block_bar <= {{color}}_lvl{{n}}_width ? {{color}}_lvl{{n}}_price : na
-plot({{color}}_lvl{{n}}_y, color={{color.upper()}}_BLOCK_COLOR, style=plot.style_linebr, offset=-n_bars-1, linewidth=2, show_last=show_last)
+plot({{color}}_lvl{{n}}_y, color={{color.upper()}}_BLOCK_COLOR, style=plot.style_linebr, offset=-n_bars-1, linewidth=2)
 {% endfor -%}
 {% endfor %}
 
