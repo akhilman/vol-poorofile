@@ -6,14 +6,16 @@
 //@version=4
 study("Poor man's volume profile", "VPoorof", overlay=true)
 
+enable_history_profiles = input(true, "Enable history profiles")
+enable_recent_profile = input(true, "Enable recent profiles")
 n_bars = input({{n_bars}}, "Bars per profile block", minval=1)
-n_blocks = input({{n_blocks}}, "Number profile blocks to show (set to 0 to disable)", minval=0, maxval=100)
-last_n_bars = input({{last_n_bars}}, "Bars in last profile block", minval=1)
+n_blocks = input({{n_blocks}}, "Number profile blocks to show", minval=1, maxval=100)
+recent_n_bars = input({{recent_n_bars}}, "Bars in recent profile block", minval=1)
 row_multiplier = input({{row_multiplier}}, "Row width multiplier", minval=0)
-avg_lenght = input({{avg_lenght}}, "Profile maximum smooth average lenght")
+avg_lenght = input({{avg_lenght}}, "Profile maximum smooth average lenght in blocks")
 
 BOUNDS_COLOR = color.blue
-LAST_BLOCK_COLOR = color.{{last_block_color}}
+LAST_BLOCK_COLOR = color.{{recent_block_color}}
 {%- for color in block_colors %}
 {{color.upper()}}_BLOCK_COLOR = color.{{color}}
 {%- endfor %}
@@ -30,6 +32,7 @@ level_volume(from_i, to_i, lvl_low, lvl_high) =>
 		vol
 
 show_last = n_bars * n_blocks
+avg_lenght_bars = n_bars * avg_lenght
 
 moving_high = highest(high, n_bars)
 moving_low = lowest(low, n_bars)
@@ -61,10 +64,10 @@ else
 	block_low := fixnan(block_low[1])
 	highest_lvl_volume := highest_lvl_volume[1]
 
-plot(n_blocks > 0 ? block_high : na, color=BOUNDS_COLOR, style=plot.style_stepline, offset=-n_bars, show_last=show_last)
-plot(n_blocks > 0 ? block_low : na, color=BOUNDS_COLOR, style=plot.style_stepline, offset=-n_bars, show_last=show_last)
+plot(enable_history_profiles ? block_high : na, color=BOUNDS_COLOR, style=plot.style_stepline, offset=-n_bars, show_last=show_last)
+plot(enable_history_profiles ? block_low : na, color=BOUNDS_COLOR, style=plot.style_stepline, offset=-n_bars, show_last=show_last)
 
-highest_lvl_volume_avg = ema(highest_lvl_volume, avg_lenght)
+highest_lvl_volume_avg = ema(highest_lvl_volume, avg_lenght_bars)
 
 ////
 // Draw blocks
@@ -79,49 +82,65 @@ highest_lvl_volume_avg = ema(highest_lvl_volume, avg_lenght)
 {{color}}_lvl{{n}}_price = (lvl{{n}}_low[{{color}}_bar_offset] + lvl{{n}}_high[{{color}}_bar_offset]) / 2
 {{color}}_lvl{{n}}_volume = lvl{{n}}_volume[{{color}}_bar_offset]
 {{color}}_lvl{{n}}_width = min({{n_bars * num_colors - 2}}, floor(n_bars * {{color}}_lvl{{n}}_volume / highest_lvl_volume_avg * row_multiplier))
-{{color}}_lvl{{n}}_y = n_blocks > 0 and {{color}}_block_bar <= {{color}}_lvl{{n}}_width ? {{color}}_lvl{{n}}_price : na
+{{color}}_lvl{{n}}_y = enable_history_profiles and {{color}}_block_bar <= {{color}}_lvl{{n}}_width ? {{color}}_lvl{{n}}_price : na
 plot({{color}}_lvl{{n}}_y, color={{color.upper()}}_BLOCK_COLOR, style=plot.style_linebr, offset=-n_bars-1, linewidth=2, show_last=show_last)
 {% endfor -%}
 {% endfor %}
 
 ////
-// Draw last block
+// Draw recent block
 ///
-// Causes internal server study error
 
-var line last_high_line = line.new(bar_index, high, bar_index, high, color=LAST_BLOCK_COLOR)
-var line last_low_line = line.new(bar_index, low, bar_index, low, color=LAST_BLOCK_COLOR)
+var line recent_high_line = na
+var line recent_low_line = na
 {% for n in range(n_rows) -%}
-var line last_lvl{{n}}_line = line.new(bar_index, close, bar_index, close, width=3, color=LAST_BLOCK_COLOR)
+var line recent_lvl{{n}}_line = na
 {% endfor %}
 
-if barstate.islast
+if enable_recent_profile
+	if na(recent_low_line)
+		recent_low_line := line.new(bar_index, high, bar_index, high, color=LAST_BLOCK_COLOR)
+	if na(recent_high_line)
+		recent_high_line := line.new(bar_index, low, bar_index, low, color=LAST_BLOCK_COLOR)
+	{% for n in range(n_rows) -%}
+	if na(recent_lvl{{n}}_line)
+		recent_lvl{{n}}_line := line.new(bar_index, close, bar_index, close, width=3, color=LAST_BLOCK_COLOR)
+	{% endfor %}
+if not enable_recent_profile
+	if not na(recent_low_line)
+		line.delete(recent_low_line)
+	if not na(recent_high_line)
+		line.delete(recent_high_line)
+	{% for n in range(n_rows) -%}
+	if not na(recent_lvl{{n}}_line)
+		line.delete(recent_lvl{{n}}_line)
+	{% endfor %}
 
-	// var last_n_bars = (bar_index % n_bars) + n_bars
-	var last_high = high[0]
-	var last_low = low[0]
-	for i=0 to last_n_bars
-		last_high := max(high[i], last_high)
-		last_low := min(low[i], last_low)
-	line.set_x1(last_high_line, bar_index)
-	line.set_x2(last_high_line, bar_index - last_n_bars)
-	line.set_y1(last_high_line, last_high)
-	line.set_y2(last_high_line, last_high)
-	line.set_x1(last_low_line, bar_index)
-	line.set_x2(last_low_line, bar_index - last_n_bars)
-	line.set_y1(last_low_line, last_low)
-	line.set_y2(last_low_line, last_low)
+if barstate.islast and enable_recent_profile
+	var recent_high = high[0]
+	var recent_low = low[0]
+	for i=0 to recent_n_bars
+		recent_high := max(high[i], recent_high)
+		recent_low := min(low[i], recent_low)
+	line.set_x1(recent_high_line, bar_index)
+	line.set_x2(recent_high_line, bar_index - recent_n_bars)
+	line.set_y1(recent_high_line, recent_high)
+	line.set_y2(recent_high_line, recent_high)
+	line.set_x1(recent_low_line, bar_index)
+	line.set_x2(recent_low_line, bar_index - recent_n_bars)
+	line.set_y1(recent_low_line, recent_low)
+	line.set_y2(recent_low_line, recent_low)
 
-	var last_lvl_height = (last_high - last_low) / {{n_rows}}
+	var recent_lvl_height = (recent_high - recent_low) / {{n_rows}}
 
 	{% for n in range(n_rows) %}
-	var last_lvl{{n}}_low = last_low + last_lvl_height * {{n}}
-	var last_lvl{{n}}_high = last_low + last_lvl_height * {{n+1}}
-	var last_lvl{{n}}_volume = level_volume(0, last_n_bars+1, last_lvl{{n}}_low, last_lvl{{n}}_high)
-	var last_lvl{{n}}_width = min(last_n_bars, floor(n_bars * last_lvl{{n}}_volume / highest_lvl_volume_avg * row_multiplier))
-	var last_lvl{{n}}_price = (last_lvl{{n}}_low + last_lvl{{n}}_high) / 2
-	line.set_x1(last_lvl{{n}}_line, bar_index - last_lvl{{n}}_width)
-	line.set_x2(last_lvl{{n}}_line, bar_index)
-	line.set_y1(last_lvl{{n}}_line, last_lvl{{n}}_price)
-	line.set_y2(last_lvl{{n}}_line, last_lvl{{n}}_price)
+	var recent_lvl{{n}}_low = recent_low + recent_lvl_height * {{n}}
+	var recent_lvl{{n}}_high = recent_low + recent_lvl_height * {{n+1}}
+	var recent_lvl{{n}}_volume = level_volume(0, recent_n_bars+1, recent_lvl{{n}}_low, recent_lvl{{n}}_high)
+	var recent_lvl{{n}}_width = min(recent_n_bars, floor(n_bars * recent_lvl{{n}}_volume / highest_lvl_volume_avg * row_multiplier))
+	var recent_lvl{{n}}_price = (recent_lvl{{n}}_low + recent_lvl{{n}}_high) / 2
+	line.set_x1(recent_lvl{{n}}_line, bar_index - recent_lvl{{n}}_width)
+	line.set_x2(recent_lvl{{n}}_line, bar_index)
+	line.set_y1(recent_lvl{{n}}_line, recent_lvl{{n}}_price)
+	line.set_y2(recent_lvl{{n}}_line, recent_lvl{{n}}_price)
 	{% endfor %}
