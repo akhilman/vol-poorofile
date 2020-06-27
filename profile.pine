@@ -7,16 +7,16 @@
 study("Poor man's volume profile", "VPoorof", overlay=true)
 
 n_bars = input({{n_bars}}, "Bars per profile block", minval=1)
-n_blocks = input({{n_blocks}}, "Number profile blocks to show", minval=0, maxval=100)
+n_blocks = input({{n_blocks}}, "Number profile blocks to show (set to 0 to disable)", minval=0, maxval=100)
 last_n_bars = input({{last_n_bars}}, "Bars in last profile block", minval=1)
 row_multiplier = input({{row_multiplier}}, "Row width multiplier", minval=0)
 avg_lenght = input({{avg_lenght}}, "Profile maximum smooth average lenght")
 
 BOUNDS_COLOR = color.blue
 LAST_BLOCK_COLOR = color.{{last_block_color}}
-{% for color in block_colors %}
+{%- for color in block_colors %}
 {{color.upper()}}_BLOCK_COLOR = color.{{color}}
-{% endfor %}
+{%- endfor %}
 
 ////
 // Calculate profiles
@@ -39,7 +39,8 @@ block_bar = bar_index % n_bars
 block_high = moving_high
 block_low = moving_low
 
-{% for n in range(n_rows) %}
+// initialize level values
+{%- for n in range(n_rows) %}
 float lvl{{n}}_low = na
 float lvl{{n}}_high = na
 lvl{{n}}_volume = 0.0
@@ -70,7 +71,7 @@ highest_lvl_volume_avg = ema(highest_lvl_volume, avg_lenght)
 ///
 
 {% for color in block_colors %}
-{% set num_colors = loop.length %}
+{%- set num_colors = loop.length %}
 {{color}}_block_bar = (block_index + {{loop.index}}) % {{num_colors}} * n_bars + block_bar
 {{color}}_bar_offset = {{color}}_block_bar + 1
 
@@ -80,7 +81,7 @@ highest_lvl_volume_avg = ema(highest_lvl_volume, avg_lenght)
 {{color}}_lvl{{n}}_width = min({{n_bars * num_colors - 2}}, floor(n_bars * {{color}}_lvl{{n}}_volume / highest_lvl_volume_avg * row_multiplier))
 {{color}}_lvl{{n}}_y = n_blocks > 0 and {{color}}_block_bar <= {{color}}_lvl{{n}}_width ? {{color}}_lvl{{n}}_price : na
 plot({{color}}_lvl{{n}}_y, color={{color.upper()}}_BLOCK_COLOR, style=plot.style_linebr, offset=-n_bars-1, linewidth=2, show_last=show_last)
-{% endfor %}
+{% endfor -%}
 {% endfor %}
 
 ////
@@ -90,7 +91,7 @@ plot({{color}}_lvl{{n}}_y, color={{color.upper()}}_BLOCK_COLOR, style=plot.style
 
 var line last_high_line = line.new(bar_index, high, bar_index, high, color=LAST_BLOCK_COLOR)
 var line last_low_line = line.new(bar_index, low, bar_index, low, color=LAST_BLOCK_COLOR)
-{% for n in range(n_rows) %}
+{% for n in range(n_rows) -%}
 var line last_lvl{{n}}_line = line.new(bar_index, close, bar_index, close, width=3, color=LAST_BLOCK_COLOR)
 {% endfor %}
 
