@@ -97,7 +97,7 @@ var line recent_low_line = na
 var line recent_lvl{{n}}_line = na
 {% endfor %}
 
-if enable_recent_profile
+if barstate.islast and enable_recent_profile
 	if na(recent_low_line)
 		recent_low_line := line.new(bar_index, high, bar_index, high, color=LAST_BLOCK_COLOR)
 	if na(recent_high_line)
@@ -106,17 +106,7 @@ if enable_recent_profile
 	if na(recent_lvl{{n}}_line)
 		recent_lvl{{n}}_line := line.new(bar_index, close, bar_index, close, width=3, color=LAST_BLOCK_COLOR)
 	{% endfor %}
-if not enable_recent_profile
-	if not na(recent_low_line)
-		line.delete(recent_low_line)
-	if not na(recent_high_line)
-		line.delete(recent_high_line)
-	{% for n in range(n_rows) -%}
-	if not na(recent_lvl{{n}}_line)
-		line.delete(recent_lvl{{n}}_line)
-	{% endfor %}
 
-if barstate.islast and enable_recent_profile
 	var recent_high = high[0]
 	var recent_low = low[0]
 	for i=0 to recent_n_bars
@@ -144,3 +134,17 @@ if barstate.islast and enable_recent_profile
 	line.set_y1(recent_lvl{{n}}_line, recent_lvl{{n}}_price)
 	line.set_y2(recent_lvl{{n}}_line, recent_lvl{{n}}_price)
 	{% endfor %}
+
+if not enable_recent_profile
+	if not na(recent_low_line)
+		line.delete(recent_low_line)
+		recent_low_line := na
+	if not na(recent_high_line)
+		line.delete(recent_high_line)
+		recent_high_line := na
+	{% for n in range(n_rows) -%}
+	if not na(recent_lvl{{n}}_line)
+		line.delete(recent_lvl{{n}}_line)
+		recent_lvl{{n}}_line := na
+	{% endfor %}
+
