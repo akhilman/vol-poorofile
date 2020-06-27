@@ -6,6 +6,16 @@
 //@version=4
 study("Poor man's volume profile", "VPoorof", overlay=true)
 
+{# Template settings -#}
+{% set n_rows = 20 -%}
+{% set n_bars = 25 -%}
+{% set avg_lenght = 20 -%}
+{% set row_multiplier = 0.6 -%}
+{% set block_colors = ['purple', 'green'] -%}
+{% set boundary_color = 'blue' -%}
+{% set recent_n_bars = 50 -%}
+{% set recent_block_color = 'gray' -%}
+
 enable_history_profiles = input(true, "Enable history profiles")
 enable_recent_profile = input(true, "Enable recent profiles")
 n_bars = input({{n_bars}}, "Bars per profile block", minval=1)
