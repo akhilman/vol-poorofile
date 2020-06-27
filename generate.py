@@ -2,7 +2,7 @@ from jinja2 import FileSystemLoader, Environment
 
 TEMPLATE_FILE = 'profile.pine'
 params = {
-    'n_rows': 10,
+    'n_rows': 20,
     'n_bars': 25,
     'avg_lenght': 20,
     'row_multiplier': 0.6,
