@@ -2,12 +2,14 @@ from jinja2 import FileSystemLoader, Environment
 
 TEMPLATE_FILE = 'profile.pine'
 params = {
-    'n_bars': 20,
     'n_rows': 10,
+    'n_bars': 20,
+    'n_blocks': 20,
     'avg_lenght': 400,
     'row_multiplier': 0.6,
     'block_colors': ['aqua', 'orange'],
-    'last_block_color': 'blue'
+    'last_n_bars': 40,
+    'last_block_color': 'gray'
 }
 
 template_loader = FileSystemLoader(searchpath='./')

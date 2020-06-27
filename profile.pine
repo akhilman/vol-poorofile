@@ -1,12 +1,15 @@
 // This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
 // © IldarAkhmetgaleev
 // See https://github.com/akhilman/vol-poorofile
+// vim: shiftwidth=2 tabstop=2
 
 //@version=4
 study("Poor man's volume profile", "VPoorof", overlay=true)
 
-n_bars = input({{n_bars}}, "Bars per profile block")
-row_multiplier = input({{row_multiplier}}, "Row width multiplier")
+n_bars = input({{n_bars}}, "Bars per profile block", minval=1)
+n_blocks = input({{n_blocks}}, "Number profile blocks to show", minval=0, maxval=100)
+last_n_bars = input({{last_n_bars}}, "Bars in last profile block", minval=1)
+row_multiplier = input({{row_multiplier}}, "Row width multiplier", minval=0)
 avg_lenght = input({{avg_lenght}}, "Profile maximum smooth average lenght")
 
 BOUNDS_COLOR = color.blue
@@ -19,15 +22,14 @@ LAST_BLOCK_COLOR = color.{{last_block_color}}
 // Calculate profiles
 ///
 
-body_low = min(open, close)
-body_high = max(open, close)
-
 level_volume(from_i, to_i, lvl_low, lvl_high) =>
 	vol = 0.0
 	for i = from_i to to_i
 		if low[i] < lvl_high and high[i] > lvl_low
 			vol := vol + volume[i] / max(1, (high[i] - low[i]) / (lvl_high - lvl_low))
 		vol
+
+show_last = n_bars * n_blocks
 
 moving_high = highest(high, n_bars)
 moving_low = lowest(low, n_bars)
@@ -45,7 +47,7 @@ lvl{{n}}_width = 0
 {% endfor %}
 highest_lvl_volume = 0.0
 
-if block_bar == n_bars - 1 or barstate.islast
+if block_bar == n_bars - 1
 	lvl_height = (moving_high - moving_low) / {{n_rows}}
 	{% for n in range(n_rows) %}
 	lvl{{n}}_low := moving_low + lvl_height * {{n}}
@@ -58,12 +60,10 @@ else
 	block_low := fixnan(block_low[1])
 	highest_lvl_volume := highest_lvl_volume[1]
 
-max_bars_back(block_high, 1000)
-max_bars_back(block_low, 1000)
-plot(block_high, color=BOUNDS_COLOR, style=plot.style_stepline, offset=-n_bars)
-plot(block_low, color=BOUNDS_COLOR, style=plot.style_stepline, offset=-n_bars)
+plot(n_blocks > 0 ? block_high : na, color=BOUNDS_COLOR, style=plot.style_stepline, offset=-n_bars, show_last=show_last)
+plot(n_blocks > 0 ? block_low : na, color=BOUNDS_COLOR, style=plot.style_stepline, offset=-n_bars, show_last=show_last)
 
-highest_lvl_volume_avg = sma(highest_lvl_volume, avg_lenght)
+highest_lvl_volume_avg = ema(highest_lvl_volume, avg_lenght)
 
 ////
 // Draw blocks
@@ -78,34 +78,49 @@ highest_lvl_volume_avg = sma(highest_lvl_volume, avg_lenght)
 {{color}}_lvl{{n}}_price = (lvl{{n}}_low[{{color}}_bar_offset] + lvl{{n}}_high[{{color}}_bar_offset]) / 2
 {{color}}_lvl{{n}}_volume = lvl{{n}}_volume[{{color}}_bar_offset]
 {{color}}_lvl{{n}}_width = min({{n_bars * num_colors - 2}}, floor(n_bars * {{color}}_lvl{{n}}_volume / highest_lvl_volume_avg * row_multiplier))
-{{color}}_lvl{{n}}_y = {{color}}_block_bar <= {{color}}_lvl{{n}}_width ? {{color}}_lvl{{n}}_price : na
-max_bars_back({{color}}_lvl{{n}}_y, 1000)
-plot({{color}}_lvl{{n}}_y, color={{color.upper()}}_BLOCK_COLOR, style=plot.style_linebr, offset=-n_bars-1, linewidth=2)
+{{color}}_lvl{{n}}_y = n_blocks > 0 and {{color}}_block_bar <= {{color}}_lvl{{n}}_width ? {{color}}_lvl{{n}}_price : na
+plot({{color}}_lvl{{n}}_y, color={{color.upper()}}_BLOCK_COLOR, style=plot.style_linebr, offset=-n_bars-1, linewidth=2, show_last=show_last)
 {% endfor %}
 {% endfor %}
-
 
 ////
 // Draw last block
 ///
+// Causes internal server study error
+
+var line last_high_line = line.new(bar_index, high, bar_index, high, color=LAST_BLOCK_COLOR)
+var line last_low_line = line.new(bar_index, low, bar_index, low, color=LAST_BLOCK_COLOR)
+{% for n in range(n_rows) %}
+var line last_lvl{{n}}_line = line.new(bar_index, close, bar_index, close, width=3, color=LAST_BLOCK_COLOR)
+{% endfor %}
 
 if barstate.islast
-	last_n_bars = bar_index % n_bars + n_bars
+
+	// var last_n_bars = (bar_index % n_bars) + n_bars
 	var last_high = high[0]
 	var last_low = low[0]
 	for i=0 to last_n_bars
 		last_high := max(high[i], last_high)
 		last_low := min(low[i], last_low)
-	line.new(bar_index - last_n_bars, last_high, bar_index, last_high, color=BOUNDS_COLOR)
-	line.new(bar_index - last_n_bars, last_low, bar_index, last_low, color=BOUNDS_COLOR)
+	line.set_x1(last_high_line, bar_index)
+	line.set_x2(last_high_line, bar_index - last_n_bars)
+	line.set_y1(last_high_line, last_high)
+	line.set_y2(last_high_line, last_high)
+	line.set_x1(last_low_line, bar_index)
+	line.set_x2(last_low_line, bar_index - last_n_bars)
+	line.set_y1(last_low_line, last_low)
+	line.set_y2(last_low_line, last_low)
 
-	last_lvl_height = (last_high - last_low) / {{n_rows}}
+	var last_lvl_height = (last_high - last_low) / {{n_rows}}
 
 	{% for n in range(n_rows) %}
-	last_lvl{{n}}_low = last_low + last_lvl_height * {{n}}
-	last_lvl{{n}}_high = last_low + last_lvl_height * {{n+1}}
-	last_lvl{{n}}_volume = level_volume(0, last_n_bars+1, last_lvl{{n}}_low, last_lvl{{n}}_high)
-	last_lvl{{n}}_width = min(last_n_bars, floor(n_bars * last_lvl{{n}}_volume / highest_lvl_volume_avg * row_multiplier))
-	last_lvl{{n}}_price = (last_lvl{{n}}_low + last_lvl{{n}}_high) / 2
-	line.new(bar_index - last_n_bars - 1, last_lvl{{n}}_price, bar_index - last_n_bars + last_lvl{{n}}_width - 1, last_lvl{{n}}_price, width=3, color=LAST_BLOCK_COLOR)
+	var last_lvl{{n}}_low = last_low + last_lvl_height * {{n}}
+	var last_lvl{{n}}_high = last_low + last_lvl_height * {{n+1}}
+	var last_lvl{{n}}_volume = level_volume(0, last_n_bars+1, last_lvl{{n}}_low, last_lvl{{n}}_high)
+	var last_lvl{{n}}_width = min(last_n_bars, floor(n_bars * last_lvl{{n}}_volume / highest_lvl_volume_avg * row_multiplier))
+	var last_lvl{{n}}_price = (last_lvl{{n}}_low + last_lvl{{n}}_high) / 2
+	line.set_x1(last_lvl{{n}}_line, bar_index - last_lvl{{n}}_width)
+	line.set_x2(last_lvl{{n}}_line, bar_index)
+	line.set_y1(last_lvl{{n}}_line, last_lvl{{n}}_price)
+	line.set_y2(last_lvl{{n}}_line, last_lvl{{n}}_price)
 	{% endfor %}
