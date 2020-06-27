@@ -6,7 +6,8 @@ params = {
     'n_bars': 25,
     'avg_lenght': 20,
     'row_multiplier': 0.6,
-    'block_colors': ['aqua', 'orange'],
+    'block_colors': ['purple', 'green'],
+    'boundary_color': 'blue',
     'recent_n_bars': 50,
     'recent_block_color': 'gray'
 }

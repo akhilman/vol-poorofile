@@ -13,7 +13,7 @@ recent_n_bars = input({{recent_n_bars}}, "Bars in recent profile block", minval=
 row_multiplier = input({{row_multiplier}}, "Row width multiplier", minval=0)
 avg_lenght = input({{avg_lenght}}, "Profile maximum smooth average lenght in blocks")
 
-BOUNDS_COLOR = color.blue
+BOUNARY_COLOR = color.{{boundary_color}}
 LAST_BLOCK_COLOR = color.{{recent_block_color}}
 {%- for color in block_colors %}
 {{color.upper()}}_BLOCK_COLOR = color.{{color}}
@@ -62,8 +62,8 @@ else
 	block_low := fixnan(block_low[1])
 	highest_lvl_volume := highest_lvl_volume[1]
 
-plot(enable_history_profiles ? block_high : na, color=BOUNDS_COLOR, style=plot.style_stepline, offset=-n_bars)
-plot(enable_history_profiles ? block_low : na, color=BOUNDS_COLOR, style=plot.style_stepline, offset=-n_bars)
+plot(enable_history_profiles ? block_high : na, color=BOUNARY_COLOR, style=plot.style_stepline, offset=-n_bars)
+plot(enable_history_profiles ? block_low : na, color=BOUNARY_COLOR, style=plot.style_stepline, offset=-n_bars)
 
 highest_lvl_volume_avg = ema(highest_lvl_volume, avg_lenght_bars)
 
