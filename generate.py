@@ -1,6 +1,6 @@
 from jinja2 import FileSystemLoader, Environment
 
-TEMPLATE_FILE = 'profile.pine'
+TEMPLATE_FILE = 'vol-poorofile.pine'
 
 template_loader = FileSystemLoader(searchpath='./')
 template_env = Environment(loader=template_loader)
