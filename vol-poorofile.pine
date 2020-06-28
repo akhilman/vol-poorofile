@@ -72,14 +72,14 @@ else
 	block_low := fixnan(block_low[1])
 	highest_lvl_value := highest_lvl_value[1]
 
-plot(enable_history_profiles ? block_high : na, color=BOUNARY_COLOR, style=plot.style_stepline, offset=-history_n_bars)
-plot(enable_history_profiles ? block_low : na, color=BOUNARY_COLOR, style=plot.style_stepline, offset=-history_n_bars)
-
 highest_lvl_value_avg = ema(highest_lvl_value, filter_size)
 
 ////
 // Draw blocks
 ///
+
+plot(enable_history_profiles ? block_high : na, color=BOUNARY_COLOR, style=plot.style_stepline, offset=-history_n_bars)
+plot(enable_history_profiles ? block_low : na, color=BOUNARY_COLOR, style=plot.style_stepline, offset=-history_n_bars)
 
 {% for color in block_colors %}
 {%- set num_colors = loop.length %}
@@ -154,5 +154,5 @@ if not enable_recent_profile
 	if not na(recent_lvl{{n}}_line)
 		line.delete(recent_lvl{{n}}_line)
 		recent_lvl{{n}}_line := na
-	{% endfor %}
+	{% endfor -%}
 
