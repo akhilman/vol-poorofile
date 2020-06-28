@@ -29,7 +29,7 @@ LAST_BLOCK_COLOR = color.{{recent_block_color}}
 {{color.upper()}}_BLOCK_COLOR = color.{{color}}
 {%- endfor %}
 
-row_width_multiplier = width_multipler * min(history_n_bars, recent_n_bars)
+row_width_multiplier = (not enable_history_profiles ? recent_n_bars : not enable_recent_profile ? history_n_bars : min(history_n_bars, recent_n_bars)) * width_multipler
 
 ////
 // Calculate profiles
