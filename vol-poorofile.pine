@@ -39,8 +39,8 @@ level_value(from_i, to_i, lvl_low, lvl_high) =>
 	vol = 0.0
 	for i = from_i to to_i
 		if low[i] < lvl_high and high[i] > lvl_low
-			vol := vol + volume[i] / max(1, (high[i] - low[i] + 1) / (lvl_high - lvl_low + 1))
-		vol / (lvl_high - lvl_low + 1)
+			vol := vol + volume[i] / max(1, (high[i] - low[i]) / max(1, lvl_high - lvl_low))
+		vol / max(1, lvl_high - lvl_low)
 
 moving_high = highest(high, history_n_bars)
 moving_low = lowest(low, history_n_bars)
