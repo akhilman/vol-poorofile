@@ -8,26 +8,28 @@ study("Poor man's volume profile", "VPoorof", overlay=true)
 
 {# Template settings -#}
 {% set n_rows = 20 -%}
-{% set n_bars = 25 -%}
-{% set avg_lenght = 20 -%}
-{% set row_multiplier = 0.6 -%}
+{% set history_n_bars = 25 -%}
+{% set width_multipler = 0.6 -%}
 {% set block_colors = ['purple', 'green'] -%}
 {% set boundary_color = 'blue' -%}
 {% set recent_n_bars = 50 -%}
 {% set recent_block_color = 'gray' -%}
+{% set filter_size = 400 -%}
 
 enable_history_profiles = input(true, "Enable history profiles")
 enable_recent_profile = input(true, "Enable recent profiles")
-n_bars = input({{n_bars}}, "Bars per profile block", minval=1)
+history_n_bars = input({{history_n_bars}}, "Bars in history profile block", minval=1)
 recent_n_bars = input({{recent_n_bars}}, "Bars in recent profile block", minval=1)
-row_multiplier = input({{row_multiplier}}, "Row width multiplier", minval=0)
-avg_lenght = input({{avg_lenght}}, "Profile maximum smooth average lenght in blocks")
+width_multipler = input({{width_multipler}}, "Row width multiplier", minval=0)
+filter_size = input({{filter_size}}, "Profile maximum high pass filter size in bars")
 
 BOUNARY_COLOR = color.{{boundary_color}}
 LAST_BLOCK_COLOR = color.{{recent_block_color}}
 {%- for color in block_colors %}
 {{color.upper()}}_BLOCK_COLOR = color.{{color}}
 {%- endfor %}
+
+row_width_multiplier = width_multipler * min(history_n_bars, recent_n_bars)
 
 ////
 // Calculate profiles
@@ -40,13 +42,11 @@ level_volume(from_i, to_i, lvl_low, lvl_high) =>
 			vol := vol + volume[i] / max(1, (high[i] - low[i]) / (lvl_high - lvl_low))
 		vol
 
-avg_lenght_bars = n_bars * avg_lenght
+moving_high = highest(high, history_n_bars)
+moving_low = lowest(low, history_n_bars)
 
-moving_high = highest(high, n_bars)
-moving_low = lowest(low, n_bars)
-
-block_index = floor(bar_index / n_bars)
-block_bar = bar_index % n_bars
+block_index = floor(bar_index / history_n_bars)
+block_bar = bar_index % history_n_bars
 block_high = moving_high
 block_low = moving_low
 
@@ -59,7 +59,7 @@ lvl{{n}}_width = 0
 {% endfor %}
 highest_lvl_volume = 0.0
 
-if block_bar == n_bars - 1
+if block_bar == history_n_bars - 1
 	lvl_height = (moving_high - moving_low) / {{n_rows}}
 	{% for n in range(n_rows) %}
 	lvl{{n}}_low := moving_low + lvl_height * {{n}}
@@ -72,10 +72,10 @@ else
 	block_low := fixnan(block_low[1])
 	highest_lvl_volume := highest_lvl_volume[1]
 
-plot(enable_history_profiles ? block_high : na, color=BOUNARY_COLOR, style=plot.style_stepline, offset=-n_bars)
-plot(enable_history_profiles ? block_low : na, color=BOUNARY_COLOR, style=plot.style_stepline, offset=-n_bars)
+plot(enable_history_profiles ? block_high : na, color=BOUNARY_COLOR, style=plot.style_stepline, offset=-history_n_bars)
+plot(enable_history_profiles ? block_low : na, color=BOUNARY_COLOR, style=plot.style_stepline, offset=-history_n_bars)
 
-highest_lvl_volume_avg = ema(highest_lvl_volume, avg_lenght_bars)
+highest_lvl_volume_avg = ema(highest_lvl_volume, filter_size)
 
 ////
 // Draw blocks
@@ -83,15 +83,15 @@ highest_lvl_volume_avg = ema(highest_lvl_volume, avg_lenght_bars)
 
 {% for color in block_colors %}
 {%- set num_colors = loop.length %}
-{{color}}_block_bar = (block_index + {{loop.index}}) % {{num_colors}} * n_bars + block_bar
+{{color}}_block_bar = (block_index + {{loop.index}}) % {{num_colors}} * history_n_bars + block_bar
 {{color}}_bar_offset = {{color}}_block_bar + 1
 
 {% for n in range(n_rows) %}
 {{color}}_lvl{{n}}_price = (lvl{{n}}_low[{{color}}_bar_offset] + lvl{{n}}_high[{{color}}_bar_offset]) / 2
 {{color}}_lvl{{n}}_volume = lvl{{n}}_volume[{{color}}_bar_offset]
-{{color}}_lvl{{n}}_width = min({{n_bars * num_colors - 2}}, floor(n_bars * {{color}}_lvl{{n}}_volume / highest_lvl_volume_avg * row_multiplier))
+{{color}}_lvl{{n}}_width = min({{history_n_bars * num_colors - 2}}, floor(row_width_multiplier * {{color}}_lvl{{n}}_volume / highest_lvl_volume_avg))
 {{color}}_lvl{{n}}_y = enable_history_profiles and {{color}}_block_bar <= {{color}}_lvl{{n}}_width ? {{color}}_lvl{{n}}_price : na
-plot({{color}}_lvl{{n}}_y, color={{color.upper()}}_BLOCK_COLOR, style=plot.style_linebr, offset=-n_bars-1, linewidth=2)
+plot({{color}}_lvl{{n}}_y, color={{color.upper()}}_BLOCK_COLOR, style=plot.style_linebr, offset=-history_n_bars-1, linewidth=2)
 {% endfor -%}
 {% endfor %}
 
@@ -135,7 +135,7 @@ if barstate.islast and enable_recent_profile
 	var recent_lvl{{n}}_low = recent_low + recent_lvl_height * {{n}}
 	var recent_lvl{{n}}_high = recent_low + recent_lvl_height * {{n+1}}
 	var recent_lvl{{n}}_volume = level_volume(0, recent_n_bars+1, recent_lvl{{n}}_low, recent_lvl{{n}}_high)
-	var recent_lvl{{n}}_width = min(recent_n_bars, floor(n_bars * recent_lvl{{n}}_volume / highest_lvl_volume_avg * row_multiplier))
+	var recent_lvl{{n}}_width = min(recent_n_bars, floor(row_width_multiplier * recent_lvl{{n}}_volume / highest_lvl_volume_avg))
 	var recent_lvl{{n}}_price = (recent_lvl{{n}}_low + recent_lvl{{n}}_high) / 2
 	line.set_x1(recent_lvl{{n}}_line, bar_index - recent_lvl{{n}}_width)
 	line.set_x2(recent_lvl{{n}}_line, bar_index)
