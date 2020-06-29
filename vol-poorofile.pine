@@ -130,12 +130,21 @@ if barstate.islast and enable_recent_profile
 	line.set_y2(recent_low_line, recent_low)
 
 	var recent_lvl_height = (recent_high - recent_low) / {{n_rows}}
+	var recent_highest_lvl_value = 0.0
 
 	{% for n in range(n_rows) %}
 	var recent_lvl{{n}}_low = recent_low + recent_lvl_height * {{n}}
 	var recent_lvl{{n}}_high = recent_low + recent_lvl_height * {{n+1}}
 	var recent_lvl{{n}}_value = level_value(0, recent_n_bars+1, recent_lvl{{n}}_low, recent_lvl{{n}}_high)
-	var recent_lvl{{n}}_width = min(recent_n_bars, floor(row_width_multiplier * recent_lvl{{n}}_value / highest_lvl_value_avg))
+	recent_highest_lvl_value := max(recent_lvl{{n}}_value, recent_highest_lvl_value)
+	{% endfor %}
+
+	{%- for n in range(n_rows) %}
+	var recent_lvl{{n}}_width = if enable_history_profiles
+		floor(row_width_multiplier * recent_lvl{{n}}_value / highest_lvl_value_avg)
+	else
+		floor(row_width_multiplier * recent_lvl{{n}}_value / recent_highest_lvl_value)
+
 	var recent_lvl{{n}}_price = (recent_lvl{{n}}_low + recent_lvl{{n}}_high) / 2
 	line.set_x1(recent_lvl{{n}}_line, bar_index - recent_lvl{{n}}_width)
 	line.set_x2(recent_lvl{{n}}_line, bar_index)
