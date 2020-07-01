@@ -7,7 +7,7 @@
 {% set n_rows = (n_rows or 20) | int -%}
 {% set history_n_bars = (history_n_bars or 25) | int -%}
 {% set width_multipler = (width_multipler or 0.6) | float -%}
-{% set block_colors = (block_colors or 'purple,green') | split(',') -%}
+{% set block_colors = (block_colors or 'purple,teal') | split(',') -%}
 {% set boundary_color = boundary_color or 'blue' -%}
 {% set recent_n_bars = (recent_n_bars or 50) | int -%}
 {% set recent_block_color = recent_block_color or 'gray' -%}
