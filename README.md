@@ -14,9 +14,9 @@ Add [indicator][install] to you TradingView chart
 
 ```bash
 # install jinja2
-pip install jinja2
+pip install -r requirements.txt
 # generate code
-./generate.py > my_indicator.pine
+./generate.py vol-poorofile.pine my_indicator.pine
 ```
 
 [install]: https://www.tradingview.com/script/IWdpl712-Poor-man-s-volume-profile/
