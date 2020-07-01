@@ -18,7 +18,7 @@
 study("Poor man's volume profile", "VPoorof", overlay=true)
 
 enable_history_profiles = input(true, "Enable history profiles")
-enable_recent_profile = input(true, "Enable recent profiles")
+enable_recent_profile = input(true, "Enable recent profile")
 history_n_bars = input({{history_n_bars}}, "Bars in history profile block", minval=1, maxval={{max_bars_back}})
 recent_n_bars = input({{recent_n_bars}}, "Bars in recent profile block", minval=1, maxval={{max_bars_back}})
 width_multipler = input({{width_multipler}}, "Row width multiplier", minval=0)
