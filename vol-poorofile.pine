@@ -23,6 +23,8 @@ history_n_bars = input({{history_n_bars}}, "Bars in history profile block", minv
 recent_n_bars = input({{recent_n_bars}}, "Bars in recent profile block", minval=1, maxval={{max_bars_back}})
 width_multipler = input({{width_multipler}}, "Row width multiplier", minval=0)
 filter_size = input({{filter_size}}, "Profile maximum high pass filter size in bars")
+use_custom_volume_source = input(false, "Use custom volume source")
+volume_source_symbol = input("", "Custom volume source symbol", input.symbol)
 
 BOUNARY_COLOR = color.{{boundary_color}}
 LAST_BLOCK_COLOR = color.{{recent_block_color}}
@@ -32,7 +34,9 @@ LAST_BLOCK_COLOR = color.{{recent_block_color}}
 
 row_width_multiplier = (not enable_history_profiles ? recent_n_bars : not enable_recent_profile ? history_n_bars : min(history_n_bars, recent_n_bars)) * width_multipler
 
-max_bars_back(volume, {{max_bars_back}})
+custom_volume = use_custom_volume_source ? security(volume_source_symbol, timeframe.period, volume) : volume
+
+max_bars_back(custom_volume, {{max_bars_back}})
 max_bars_back(high, {{max_bars_back}})
 max_bars_back(low, {{max_bars_back}})
 
@@ -46,7 +50,7 @@ level_value(from_i, to_i, lvl_low, lvl_high) =>
 	vol = 0.0
 	for i = from_i to to_i
 		if low[i] < lvl_high and high[i] > lvl_low
-			vol := vol + nan_to_float(volume[i]) / max(1, (high[i] - low[i]) / max(1, lvl_high - lvl_low))
+			vol := vol + nan_to_float(custom_volume[i]) / max(1, (high[i] - low[i]) / max(1, lvl_high - lvl_low))
 		vol / max(1, lvl_high - lvl_low)
 
 ////
