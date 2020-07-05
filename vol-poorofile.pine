@@ -32,7 +32,7 @@ BOUNARY_COLOR = color.{{boundary_color}}
 VPOC_COLOR = color.{{vpoc_color}}
 LAST_BLOCK_COLOR = color.{{recent_block_color}}
 {%- for color in block_colors %}
-{{color.upper()}}_BLOCK_COLOR = color.{{color}}
+HISTORY{{loop.index}}_BLOCK_COLOR = color.{{color}}
 {%- endfor %}
 
 row_width_multiplier = (not enable_history_profiles ? recent_n_bars : not enable_recent_profile ? history_n_bars : min(history_n_bars, recent_n_bars)) * width_multipler
@@ -100,25 +100,26 @@ if enable_history_profiles or enable_history_vpoc
 
 bounds_high_y = enable_history_profiles ? block_high[block_bar] : na
 bounds_low_y = enable_history_profiles ? block_low[block_bar] : na
-plot(bounds_high_y, color=BOUNARY_COLOR, style=plot.style_stepline, offset=-history_n_bars)
-plot(bounds_low_y, color=BOUNARY_COLOR, style=plot.style_stepline, offset=-history_n_bars)
+plot(bounds_high_y, color=BOUNARY_COLOR, style=plot.style_stepline, offset=-history_n_bars, title="History block high")
+plot(bounds_low_y, color=BOUNARY_COLOR, style=plot.style_stepline, offset=-history_n_bars, title="History block low")
 
 vpoc_y = enable_history_vpoc ? vpoc_price : na
 plot(vpoc_y, color=VPOC_COLOR, style=plot.style_line, title="VPoC")
 
 {%- for color in block_colors -%}
+{%- set hn = loop.index %}
 {%- set num_colors = loop.length %}
 
-{{color}}_block_bar = (block_index + {{loop.index}}) % {{num_colors}} * history_n_bars + block_bar
+history{{hn}}_block_bar = (block_index + {{loop.index}}) % {{num_colors}} * history_n_bars + block_bar
 
 {% for n in range(n_rows) %}
-{{color}}_lvl{{n}}_price = lvl{{n}}_price[{{color}}_block_bar]
-{{color}}_lvl{{n}}_width = min({{history_n_bars * num_colors - 2}}, lvl{{n}}_width[{{color}}_block_bar])
-{{color}}_lvl{{n}}_y = enable_history_profiles and {{color}}_block_bar <= {{color}}_lvl{{n}}_width ? {{color}}_lvl{{n}}_price : na
+history{{hn}}_lvl{{n}}_price = lvl{{n}}_price[history{{hn}}_block_bar]
+history{{hn}}_lvl{{n}}_width = min({{history_n_bars * num_colors - 2}}, lvl{{n}}_width[history{{hn}}_block_bar])
+history{{hn}}_lvl{{n}}_y = enable_history_profiles and history{{hn}}_block_bar <= history{{hn}}_lvl{{n}}_width ? history{{hn}}_lvl{{n}}_price : na
 {% endfor %}
 
 {% for n in range(n_rows) %}
-plot({{color}}_lvl{{n}}_y, color={{color.upper()}}_BLOCK_COLOR, style=plot.style_linebr, linewidth=2, offset=-history_n_bars)
+plot(history{{hn}}_lvl{{n}}_y, color=HISTORY{{hn}}_BLOCK_COLOR, style=plot.style_linebr, linewidth=2, offset=-history_n_bars, title="History {{hn}} row {{n}}")
 {%- endfor %}
 {% endfor %}
 
