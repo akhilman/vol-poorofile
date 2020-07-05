@@ -68,7 +68,7 @@ float block_low = na
 float vpoc_price = na
 float highest_lvl_value_avg = na
 float highest_lvl_value = na
-{% for n in range(n_rows) %}
+{% for n in range(n_rows) -%}
 float lvl{{n}}_price = na
 int lvl{{n}}_width = na
 {% endfor %}
@@ -90,7 +90,7 @@ if enable_history_profiles or enable_history_vpoc
 
 	highest_lvl_value_avg := ema(highest_lvl_value, filter_size)
 
-	{% for n in range(n_rows) %}
+	{% for n in range(n_rows) -%}
 	lvl{{n}}_width := floor(row_width_multiplier * lvl{{n}}_value / highest_lvl_value_avg)
 	{% endfor %}
 
@@ -118,9 +118,9 @@ history{{hn}}_lvl{{n}}_width = min({{history_n_bars * num_colors - 2}}, lvl{{n}}
 history{{hn}}_lvl{{n}}_y = enable_history_profiles and history{{hn}}_block_bar <= history{{hn}}_lvl{{n}}_width ? history{{hn}}_lvl{{n}}_price : na
 {% endfor %}
 
-{% for n in range(n_rows) %}
+{% for n in range(n_rows) -%}
 plot(history{{hn}}_lvl{{n}}_y, color=HISTORY{{hn}}_BLOCK_COLOR, style=plot.style_linebr, linewidth=2, offset=-history_n_bars, title="History {{hn}} row {{n}}")
-{%- endfor %}
+{% endfor -%}
 {% endfor %}
 
 ////
@@ -140,21 +140,22 @@ if enable_recent_profile
 	recent_low := lowest(low, recent_n_bars)
 
 	recent_lvl_height = (recent_high - recent_low) / {{n_rows}}
-	{% for n in range(n_rows) %}
+	{% for n in range(n_rows) -%}
 	recent_lvl{{n}}_low = recent_low + recent_lvl_height * {{n}}
 	recent_lvl{{n}}_high = recent_low + recent_lvl_height * {{n+1}}
 	recent_lvl{{n}}_value = level_value(0, recent_n_bars, recent_lvl{{n}}_low, recent_lvl{{n}}_high)
 	recent_highest_lvl_value := max(nan_to_float(recent_highest_lvl_value), recent_lvl{{n}}_value)
+
 	{% endfor %}
 
-	{% for n in range(n_rows) %}
+	{%- for n in range(n_rows) -%}
 	recent_lvl{{n}}_price := (recent_lvl{{n}}_low + recent_lvl{{n}}_high ) / 2
 	recent_lvl{{n}}_width := if enable_history_profiles
 		floor(row_width_multiplier * recent_lvl{{n}}_value / highest_lvl_value_avg)
 	else
 		floor(row_width_multiplier * recent_lvl{{n}}_value / recent_highest_lvl_value)
-	{% endfor %}
 
+	{% endfor %}
 
 ////
 // Draw recent block
