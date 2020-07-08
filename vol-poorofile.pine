@@ -98,8 +98,8 @@ if enable_history_profiles or enable_history_vpoc
 
 bounds_high_y = enable_history_profiles ? block_high[block_bar] : na
 bounds_low_y = enable_history_profiles ? block_low[block_bar] : na
-plot(bounds_high_y, color=BOUNARY_COLOR, style=plot.style_stepline, offset=-history_n_bars, title="History block high")
-plot(bounds_low_y, color=BOUNARY_COLOR, style=plot.style_stepline, offset=-history_n_bars, title="History block low")
+plot(bounds_high_y, color=BOUNARY_COLOR, style=plot.style_stepline, offset=-history_n_bars+1, title="History block high")
+plot(bounds_low_y, color=BOUNARY_COLOR, style=plot.style_stepline, offset=-history_n_bars+1, title="History block low")
 
 vpoc_y = enable_history_vpoc ? vpoc_price : na
 plot(vpoc_y, color=VPOC_COLOR, style=plot.style_line, title="VPoC")
@@ -117,7 +117,7 @@ history{{hn}}_lvl{{n}}_y = enable_history_profiles and history{{hn}}_block_bar <
 {% endfor %}
 
 {% for n in range(n_rows) -%}
-plot(history{{hn}}_lvl{{n}}_y, color=HISTORY{{hn}}_BLOCK_COLOR, style=plot.style_linebr, linewidth=2, offset=-history_n_bars, title="History {{hn}} row {{n}}")
+plot(history{{hn}}_lvl{{n}}_y, color=HISTORY{{hn}}_BLOCK_COLOR, style=plot.style_linebr, linewidth=2, offset=-history_n_bars+1, title="History {{hn}} row {{n}}")
 {% endfor -%}
 {% endfor %}
 
