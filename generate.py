@@ -28,7 +28,11 @@ def main(template, output, option):
     env = Environment(loader=BaseLoader)
     env.filters['split'] = split_filter
     templ = env.from_string(template.read())
+
     code = templ.render(**dict(option))
+    code = "\n".join(map(lambda line: line.rstrip(), code.splitlines()))
+    code = code.replace("\n\n\n", "\n\n")
+
     output.write(code)
 
 
