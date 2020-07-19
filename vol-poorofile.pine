@@ -133,7 +133,13 @@ float recent_lvl{{n}}_price = na
 int recent_lvl{{n}}_width = na
 {% endfor %}
 
-if enable_recent_profile
+// Estimate bars to end
+var int first_bar_time = na
+if bar_index == 0
+    first_bar_time := time
+estimate_bars_to_end = floor((timenow - time) / ((time - first_bar_time) / bar_index))
+
+if enable_recent_profile and estimate_bars_to_end < recent_n_bars * 2
 	recent_high := highest(high, recent_n_bars)
 	recent_low := lowest(low, recent_n_bars)
 
