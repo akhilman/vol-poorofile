@@ -13,9 +13,9 @@
 {% set max_bars_back = (max_bars_back or 500) | int -%}
 
 //@version=4
-study("Poor man's volume profile", "VPoorof", overlay=true)
+study("Poor man's volume profile", "VPoorof", overlay=true, max_bars_back={{ max_bars_back }})
 
-block_size = input({{block_size}}, "Bars in profile block", minval=1, maxval={{max_bars_back}})
+block_size = input({{block_size}}, "Bars in profile block", minval=1, maxval={{max_bars_back//3}})
 width_multipler = input({{width_multipler}}, "Row width multiplier", minval=0)
 filter_size = input({{filter_size}}, "Profile maximum high pass filter size in bars")
 use_custom_volume_source = input(false, "Use custom volume source")
@@ -30,9 +30,9 @@ row_width_multiplier = block_size * width_multipler
 
 custom_volume = use_custom_volume_source ? security(volume_source_symbol, timeframe.period, volume) : volume
 
-max_bars_back(custom_volume, {{max_bars_back}})
-max_bars_back(high, {{max_bars_back}})
-max_bars_back(low, {{max_bars_back}})
+// max_bars_back(custom_volume, {{max_bars_back}})
+// max_bars_back(high, {{max_bars_back}})
+// max_bars_back(low, {{max_bars_back}})
 
 ////
 // Calculate profiles
@@ -47,26 +47,25 @@ rolling_low = lowest(block_bar + 1)
 block_high = rolling_high[block_bar+1]
 block_low = rolling_low[block_bar+1]
 
-// plot(block_high)
-// plot(block_low)
+// plot(block_high, color=color.green)
+// plot(block_low, color=color.green)
 
 row_height = (block_high - block_low) / {{n_rows}}
-row_value = custom_volume[block_size] / (high[block_size] - low[block_size])
+row_value = custom_volume[block_size] / max(block_high - block_low, 1)
 
-{% for n in range(n_rows) -%}
+{% for n in range(n_rows) %}
 row{{n}}_low = block_low + row_height * {{n}}
 row{{n}}_high = block_low + row_height * {{n+1}}
 row{{n}}_value = high[block_size] > row{{n}}_low and low[block_size] < row{{n}}_high ? row_value : 0
 row{{n}}_price = (row{{n}}_low + row{{n}}_high ) / 2
+{% endfor %}
 
-{% endfor -%}
+// plot(row0_value, color=color.red, style=plot.style_linebr)
 
 if block_bar != 0
 	{% for n in range(n_rows) -%}
 	row{{n}}_value := row{{n}}_value + row{{n}}_value[1]
 	{% endfor %}
-
-// plot(row0_value, color=color.red)
 
 highest_row_value = 0.0
 if block_bar == block_size - 1
@@ -78,18 +77,19 @@ else
 
 highest_row_value_avg = ema(highest_row_value, filter_size)
 
-// plot(row1_value)
+// plot(row0_value)
 // plot(highest_row_value, color=color.yellow)
-// plot(highest_row_value_avg, color=color.red)
+// plot(highest_row_value_avg, color=color.blue)
 
 {% for n in range(n_rows) -%}
 row{{n}}_width = floor(row_width_multiplier * row{{n}}_value / highest_row_value_avg)
 {% endfor %}
 
+// plot(row0_value, color=color.red, style=plot.style_linebr, offset=-block_size)
+
 ////
 // Draw history blocks
 ///
-
 bounds_high_y = block_high[block_bar+1]
 bounds_low_y = block_low[block_bar+1]
 plot(bounds_high_y, color=BOUNARY_COLOR, style=plot.style_stepline, offset=-block_size*2, title="History block high")
@@ -118,17 +118,19 @@ plot(history{{hn}}_row{{n}}_y, color=HISTORY{{hn}}_BLOCK_COLOR, style=plot.style
 ///
 
 level_value(from_i, to_i, row_low, row_high) =>
-	vol = 0.0
+	val = 0.0
 	for i = from_i to to_i
 		if low[i] < row_high and high[i] > row_low
-			vol := vol + nz(custom_volume[i]) / max(1, (high[i] - low[i]) / max(1, row_high - row_low))
-		vol / max(1, row_high - row_low)
+			val := val + custom_volume[i] / max((row_high - row_low) * {{n_rows}}, 1)
+	val
 
-{% for n in range(n_rows) -%}
+{% for n in range(n_rows) %}
+float recent_row{{n}}_low = na
+float recent_row{{n}}_high = na
+float recent_row{{n}}_value = na
 float recent_row{{n}}_price = na
 int recent_row{{n}}_width = na
-
-{% endfor -%}
+{% endfor %}
 
 // Estimate bars to end
 var int first_bar_time = na
@@ -138,14 +140,15 @@ estimate_bars_to_end = floor((timenow - time) / ((time - first_bar_time) / bar_i
 
 if estimate_bars_to_end < block_size * 6
 	recent_row_height = (rolling_high - rolling_low) / {{n_rows}}
-	{% for n in range(n_rows) -%}
-	recent_row{{n}}_low = rolling_low + recent_row_height * {{n}}
-	recent_row{{n}}_high = rolling_low + recent_row_height * {{n+1}}
-	recent_row{{n}}_value = level_value(0, block_bar+1, recent_row{{n}}_low, recent_row{{n}}_high)
+	{% for n in range(n_rows) %}
+	recent_row{{n}}_low := rolling_low + recent_row_height * {{n}}
+	recent_row{{n}}_high := rolling_low + recent_row_height * {{n+1}}
+	recent_row{{n}}_value := level_value(0, block_bar+1, recent_row{{n}}_low, recent_row{{n}}_high)
 	recent_row{{n}}_price := (recent_row{{n}}_low + recent_row{{n}}_high ) / 2
 	recent_row{{n}}_width := floor(row_width_multiplier * recent_row{{n}}_value / highest_row_value_avg)
-
 	{% endfor %}
+
+// plot(recent_row0_value, color=color.blue, style=plot.style_linebr)
 
 ////
 // Draw last three blocks
@@ -193,14 +196,14 @@ if barstate.islast
 			recent{{rn}}_row{{n}}_line := line.new(bar_index, close, bar_index, close, width=2)
 		{% endfor %}
 
-		{% for n in range(n_rows) -%}
+		{% for n in range(n_rows) %}
 		line.set_x1(recent{{rn}}_row{{n}}_line, bar_index - recent{{rn}}_start_i)
 		line.set_x2(recent{{rn}}_row{{n}}_line, bar_index - max(recent{{rn}}_start_i - recent_row{{n}}_width[recent{{rn}}_end_i], 0))
 		line.set_y1(recent{{rn}}_row{{n}}_line, recent_row{{n}}_price[recent{{rn}}_end_i])
 		line.set_y2(recent{{rn}}_row{{n}}_line, recent_row{{n}}_price[recent{{rn}}_end_i])
 		line.set_color(recent{{rn}}_row{{n}}_line, recent{{rn}}_color)
-
 		{% endfor %}
+
 		0
 
 	else
@@ -211,12 +214,11 @@ if barstate.islast
 		if not na(recent{{rn}}_high_line)
 			line.delete(recent{{rn}}_high_line)
 			recent{{rn}}_high_line := na
-		{% for n in range(n_rows) -%}
+		{% for n in range(n_rows) %}
 		if not na(recent{{rn}}_row{{n}}_line)
 			line.delete(recent{{rn}}_row{{n}}_line)
 			recent{{rn}}_row{{n}}_line := na
-		{% endfor -%}
+		{% endfor %}
 
 		0
-
 	{% endfor %}
