@@ -10,12 +10,11 @@
 {% set block_colors = (block_colors or 'purple,teal') | split(',') -%}
 {% set boundary_color = boundary_color or 'blue' -%}
 {% set filter_size = (filter_size or 400) | int -%}
-{% set max_bars_back = (max_bars_back or 500) | int -%}
 
 //@version=4
 study("Poor man's volume profile", "VPoorof", overlay=true)
 
-block_size = input({{block_size}}, "Bars in profile block", minval=1, maxval={{max_bars_back}})
+block_size = input({{block_size}}, "Bars in profile block", minval=1)
 width_multipler = input({{width_multipler}}, "Row width multiplier", minval=0)
 filter_size = input({{filter_size}}, "Profile maximum high pass filter size in bars")
 use_custom_volume_source = input(false, "Use custom volume source")
@@ -29,10 +28,6 @@ HISTORY{{loop.index}}_BLOCK_COLOR = color.{{color}}
 row_width_multiplier = block_size * width_multipler
 
 custom_volume = use_custom_volume_source ? security(volume_source_symbol, timeframe.period, volume) : volume
-
-max_bars_back(custom_volume, {{max_bars_back}})
-max_bars_back(high, {{max_bars_back}})
-max_bars_back(low, {{max_bars_back}})
 
 ////
 // Calculate profiles
