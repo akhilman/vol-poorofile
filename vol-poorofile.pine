@@ -92,6 +92,7 @@ row{{n}}_width = floor(history_row_width * row{{n}}_value / highest_row_value_av
 ////
 // Draw history blocks
 ///
+
 bounds_high_y = enable_history_profiles ? block_high[block_bar+1] : na
 bounds_low_y = enable_history_profiles ? block_low[block_bar+1] : na
 plot(bounds_high_y, color=BOUNARY_COLOR, style=plot.style_stepline, offset=-history_n_bars*2, title="History block high")
