@@ -53,7 +53,7 @@ block_low = rolling_low[block_bar+1]
 // plot(block_low, color=color.green)
 
 row_height = (block_high - block_low) / {{n_rows}}
-row_value = custom_volume[history_n_bars] * (max(block_high - block_low, 1) / max(high[history_n_bars] - low[history_n_bars], 1))
+row_value = custom_volume[history_n_bars] / max(high[history_n_bars] - low[history_n_bars], 1) * max(block_high - block_low, 1)
 
 {% for n in range(n_rows) %}
 row{{n}}_low = block_low + row_height * {{n}}
@@ -123,7 +123,7 @@ level_value(from_i, to_i, row_low, row_high) =>
 	val = 0.0
 	for i = from_i to to_i
 		if low[i] < row_high and high[i] > row_low
-			val := val + custom_volume[i] * (max((row_high - row_low) * {{n_rows}}, 1) / max(high[i] - low[i], 1))
+			val := val + custom_volume[i] / max(high[i] - low[i], 1) * max((row_high - row_low) * {{n_rows}}, 1)
 	val
 
 float recent_high = na
