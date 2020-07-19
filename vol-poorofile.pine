@@ -12,7 +12,7 @@
 {% set recent_n_bars = (recent_n_bars or 150) | int -%}
 {% set recent_block_color = recent_block_color or 'gray' -%}
 {% set recent_row_width = (recent_row_width or 15) | float -%}
-{% set filter_size = (filter_size or 400) | int -%}
+{% set filter_size = (filter_size or 150) | int -%}
 {% set max_bars_back = (max_bars_back or 500) | int -%}
 
 //@version=4
