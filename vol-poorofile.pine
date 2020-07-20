@@ -25,7 +25,7 @@ calc_n_blocks_ahead = input({{calc_n_blocks_ahead}}, "Calculate N blocks ahead f
 
 BOUNARY_COLOR = color.{{boundary_color}}
 {%- for color in block_colors %}
-HISTORY{{loop.index}}_BLOCK_COLOR = color.{{color}}
+PROFILE{{loop.index}}_COLOR = color.{{color}}
 {%- endfor %}
 
 custom_volume = use_custom_volume_source ? security(volume_source_symbol, timeframe.period, volume) : volume
@@ -92,20 +92,20 @@ plot(bounds_high_y, color=BOUNARY_COLOR, style=plot.style_stepline, offset=-bloc
 plot(bounds_low_y, color=BOUNARY_COLOR, style=plot.style_stepline, offset=-block_size*2, title="History block low")
 
 {%- for color in block_colors -%}
-{%- set hn = (loop.length - loop.index + 1) % loop.length + 1 %}
+{%- set pn = (loop.length - loop.index + 1) % loop.length + 1 %}
 {%- set num_colors = loop.length %}
 
-history{{hn}}_block_bar = (block_index + {{loop.index}}) % {{num_colors}} * block_size + block_bar
+history{{pn}}_block_bar = (block_index + {{loop.index}}) % {{num_colors}} * block_size + block_bar
 
 {% for n in range(n_rows) -%}
-history{{hn}}_row{{n}}_price = row{{n}}_price[history{{hn}}_block_bar+1]
-history{{hn}}_row{{n}}_width = min({{block_size * num_colors - 2}}, row{{n}}_width[history{{hn}}_block_bar+1])
-history{{hn}}_row{{n}}_y = history{{hn}}_block_bar <= history{{hn}}_row{{n}}_width ? history{{hn}}_row{{n}}_price : na
+history{{pn}}_row{{n}}_price = row{{n}}_price[history{{pn}}_block_bar+1]
+history{{pn}}_row{{n}}_width = min({{block_size * num_colors - 2}}, row{{n}}_width[history{{pn}}_block_bar+1])
+history{{pn}}_row{{n}}_y = history{{pn}}_block_bar <= history{{pn}}_row{{n}}_width ? history{{pn}}_row{{n}}_price : na
 
 {% endfor -%}
 
 {% for n in range(n_rows) -%}
-plot(history{{hn}}_row{{n}}_y, color=HISTORY{{hn}}_BLOCK_COLOR, style=plot.style_linebr, linewidth=2, offset=-block_size*2, title="History {{hn}} row {{n}}")
+plot(history{{pn}}_row{{n}}_y, color=PROFILE{{pn}}_COLOR, style=plot.style_linebr, linewidth=2, offset=-block_size*2, title="History {{pn}} row {{n}}")
 {% endfor -%}
 {% endfor %}
 
