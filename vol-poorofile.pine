@@ -15,8 +15,8 @@
 //@version=4
 study("Poor man's volume profile", "VPoorof", overlay=true, max_bars_back={{max_bars_back}})
 
-block_size = input({{block_size}}, "Bars in profile block", minval=1, maxval={{max_bars_back//3}})
-visual_row_width = input({{visual_row_width}}, "Visual row width", minval=0)
+block_size = input({{block_size}}, "Bars in profile block", minval=10, maxval={{max_bars_back//3}})
+visual_row_width = input({{visual_row_width}}, "Visual row width", minval=10)
 filter_size = input({{filter_size}}, "Profile maximum high pass filter size in bars")
 use_custom_volume_source = input(false, "Use custom volume source")
 volume_source_symbol = input("", "Custom volume source symbol", input.symbol)
