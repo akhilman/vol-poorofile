@@ -7,7 +7,8 @@ This is an attempt to get something more or less similar to the volume profile f
 
 ## Install
 
-Add [indicator][install] to you TradingView chart
+* Add [Poor man's volume profile][vpoorof] to you TradingView chart
+* Add Poor man's volume profile (Big picture) to you TradingView chart (Not released yet)
 
 
 ## Build
@@ -16,7 +17,8 @@ Add [indicator][install] to you TradingView chart
 # install jinja2
 pip install -r requirements.txt
 # generate code
-./generate.py vol-poorofile.pine my_indicator.pine
+./generate.py vol-poorofile.pine vol-poorofile.dist.pine
+./generate.py vol-poorofile-big.pine vol-poorofile-big.dist.pine
 ```
 
-[install]: https://www.tradingview.com/script/IWdpl712-Poor-man-s-volume-profile/
+[vpoorof]: https://www.tradingview.com/script/IWdpl712-Poor-man-s-volume-profile/
