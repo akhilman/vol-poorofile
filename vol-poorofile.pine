@@ -84,10 +84,10 @@ row{{n}}_width = floor(visual_row_width * row{{n}}_value / highest_row_value_avg
 ////
 // Draw history blocks
 ///
-bounds_high_y = block_high[block_bar+1]
-bounds_low_y = block_low[block_bar+1]
-plot(bounds_high_y, color=BOUNARY_COLOR, style=plot.style_stepline, offset=-block_size*2, title="History block high")
-plot(bounds_low_y, color=BOUNARY_COLOR, style=plot.style_stepline, offset=-block_size*2, title="History block low")
+bounds_high_y = block_bar != block_size -1 ? block_high[block_bar+1] : na
+bounds_low_y = block_bar != block_size -1 ? block_low[block_bar+1] : na
+plot(bounds_high_y, color=BOUNARY_COLOR, style=plot.style_linebr, offset=-block_size*2, title="History block high")
+plot(bounds_low_y, color=BOUNARY_COLOR, style=plot.style_linebr, offset=-block_size*2, title="History block low")
 
 {%- for color in block_colors -%}
 {%- set pn = (loop.length - loop.index + 1) % loop.length + 1 %}
@@ -146,11 +146,11 @@ if barstate.islast
 		recent{{rn}}_block_high = rolling_high[recent{{rn}}_end_i]
 		recent{{rn}}_block_low = rolling_low[recent{{rn}}_end_i]
 
-		line.set_xloc(recent{{rn}}_low_line, time[recent{{rn}}_start_i], time_close[recent{{rn}}_end_i], xloc.bar_time)
+		line.set_xloc(recent{{rn}}_low_line, time[recent{{rn}}_start_i], time[recent{{rn}}_end_i], xloc.bar_time)
 		line.set_y1(recent{{rn}}_low_line, recent{{rn}}_block_low)
 		line.set_y2(recent{{rn}}_low_line, recent{{rn}}_block_low)
 
-		line.set_xloc(recent{{rn}}_high_line, time[recent{{rn}}_start_i], time_close[recent{{rn}}_end_i], xloc.bar_time)
+		line.set_xloc(recent{{rn}}_high_line, time[recent{{rn}}_start_i], time[recent{{rn}}_end_i], xloc.bar_time)
 		line.set_y1(recent{{rn}}_high_line, recent{{rn}}_block_high)
 		line.set_y2(recent{{rn}}_high_line, recent{{rn}}_block_high)
 
