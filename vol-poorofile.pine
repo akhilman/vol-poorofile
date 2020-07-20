@@ -111,10 +111,6 @@ plot(history{{pn}}_row{{n}}_y, color=PROFILE{{pn}}_COLOR, style=plot.style_lineb
 // Caclulate and draw last three blocks
 ///
 
-var int first_bar_index = na
-if barstate.isfirst
-	first_bar_index = bar_index
-
 {% for rn in range(3) -%}
 var line recent{{rn}}_high_line = line.new(bar_index, close, bar_index, close, color=BOUNARY_COLOR)
 var line recent{{rn}}_low_line = line.new(bar_index, close, bar_index, close, color=BOUNARY_COLOR)
