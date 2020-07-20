@@ -46,7 +46,7 @@ if barstate.islast
 	block_row{{n}}_value = 0.0
 	for i = 0 to block_size + 1
 		if low[i] < block_row{{n}}_high and high[i] > block_row{{n}}_low
-			block_row{{n}}_value := block_row{{n}}_value + custom_volume[i] / max(high[i] - low[i], 1) * max(block_height, 1)
+			block_row{{n}}_value := block_row{{n}}_value + custom_volume[i] / ceil((high[i] - low[i]) / block_height)
 
 	block_highest_row_value := max(nz(block_highest_row_value), block_row{{n}}_value)
 	{% endfor %}

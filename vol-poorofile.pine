@@ -44,8 +44,9 @@ block_low = rolling_low[block_bar+1]
 // plot(block_high, color=color.green)
 // plot(block_low, color=color.green)
 
-row_height = (block_high - block_low) / {{n_rows}}
-row_value = custom_volume[block_size] / max(high[block_size] - low[block_size], 1) * max(block_high - block_low, 1)
+block_height = (block_high - block_low)
+row_height = block_height / {{n_rows}}
+row_value = custom_volume[block_size] / ceil((high[block_size] - low[block_size]) / row_height) / row_height
 
 {% for n in range(n_rows) %}
 row{{n}}_low = block_low + row_height * {{n}}
@@ -162,7 +163,7 @@ if barstate.islast
 		recent{{rn}}_row{{n}}_value = 0.0
 		for i = recent{{rn}}_start_i to recent{{rn}}_end_i + 1
 			if low[i] < recent{{rn}}_row{{n}}_high and high[i] > recent{{rn}}_row{{n}}_low
-				recent{{rn}}_row{{n}}_value := recent{{rn}}_row{{n}}_value + custom_volume[i] / max(high[i] - low[i], 1) * max(recent{{rn}}_block_height, 1)
+				recent{{rn}}_row{{n}}_value := recent{{rn}}_row{{n}}_value + custom_volume[i] / ceil((high[i] - low[i]) / recent{{rn}}_row_height) / recent{{rn}}_row_height
 		{% endfor %}
 
 		{% for n in range(n_rows) -%}
