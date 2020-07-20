@@ -5,7 +5,7 @@
 
 {# Template settings -#}
 {% set n_rows = (n_rows or 40) | int -%}
-{% set block_size = (block_size or 150) | int -%}
+{% set block_size = (block_size or 200) | int -%}
 {% set profile_color = profile_color or 'gray' -%}
 {% set visual_row_width = (visual_row_width or 20) | float -%}
 {% set max_bars_back = (max_bars_back or 500) | int -%}
