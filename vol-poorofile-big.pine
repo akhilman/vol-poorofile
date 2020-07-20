@@ -61,6 +61,10 @@ if barstate.islast
 // Draw profile
 ///
 
+var int first_bar_time = time
+if barstate.isfirst
+	first_bar_time = time
+
 var line block_high_line = line.new(bar_index, high, bar_index, high, color=PROFILE_COLOR)
 var line block_low_line = line.new(bar_index, low, bar_index, low, color=PROFILE_COLOR)
 {% for n in range(n_rows) -%}
@@ -68,18 +72,16 @@ var line block_row{{n}}_line = line.new(bar_index, close, bar_index, close, widt
 {% endfor %}
 
 if barstate.islast
-	line.set_x1(block_high_line, bar_index)
-	line.set_x2(block_high_line, max(0, bar_index - block_size))
+	line.set_xloc(block_high_line, max(time[block_size], first_bar_time), time_close, xloc.bar_time)
 	line.set_y1(block_high_line, block_high)
 	line.set_y2(block_high_line, block_high)
-	line.set_x1(block_low_line, bar_index)
-	line.set_x2(block_low_line, max(0, bar_index - block_size))
+
+	line.set_xloc(block_low_line, max(time[block_size], first_bar_time), time_close, xloc.bar_time)
 	line.set_y1(block_low_line, block_low)
 	line.set_y2(block_low_line, block_low)
 
 	{% for n in range(n_rows) -%}
-	line.set_x1(block_row{{n}}_line, bar_index - block_row{{n}}_width)
-	line.set_x2(block_row{{n}}_line, bar_index)
+	line.set_xloc(block_row{{n}}_line, max(time_close[block_row{{n}}_width], first_bar_time), time_close, xloc.bar_time)
 	line.set_y1(block_row{{n}}_line, block_row{{n}}_price)
 	line.set_y2(block_row{{n}}_line, block_row{{n}}_price)
 	{% endfor %}
