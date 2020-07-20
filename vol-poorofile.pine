@@ -10,7 +10,6 @@
 {% set block_colors = (block_colors or 'purple,teal') | split(',') -%}
 {% set boundary_color = boundary_color or 'blue' -%}
 {% set filter_size = (filter_size or 200) | int -%}
-{% set calc_n_blocks_ahead = (calc_n_blocks_ahead or 15) | int -%}
 {% set max_bars_back = (max_bars_back or 500) | int -%}
 
 //@version=4
@@ -21,7 +20,6 @@ visual_row_width = input({{visual_row_width}}, "Visual row width", minval=0)
 filter_size = input({{filter_size}}, "Profile maximum high pass filter size in bars")
 use_custom_volume_source = input(false, "Use custom volume source")
 volume_source_symbol = input("", "Custom volume source symbol", input.symbol)
-calc_n_blocks_ahead = input({{calc_n_blocks_ahead}}, "Calculate N blocks ahead for last three profiles (Increase value if the last three profiles are displayed incorrectly)")
 
 BOUNARY_COLOR = color.{{boundary_color}}
 {%- for color in block_colors %}
@@ -110,50 +108,16 @@ plot(history{{pn}}_row{{n}}_y, color=PROFILE{{pn}}_COLOR, style=plot.style_lineb
 {% endfor %}
 
 ////
-// Calculate last three blocks
+// Caclulate and draw last three blocks
 ///
 
-level_value(from_i, to_i, row_low, row_high) =>
-	val = 0.0
-	for i = from_i to to_i
-		if low[i] < row_high and high[i] > row_low
-			val := val + custom_volume[i] / max(high[i] - low[i], 1) * max((row_high - row_low) * {{n_rows}}, 1)
-	val
+var int first_bar_index = na
+if barstate.isfirst
+	first_bar_index = bar_index
 
-{% for n in range(n_rows) %}
-float recent_row{{n}}_low = na
-float recent_row{{n}}_high = na
-float recent_row{{n}}_value = na
-float recent_row{{n}}_price = na
-int recent_row{{n}}_width = na
-{% endfor %}
-
-// Estimate bars to end
-var int first_bar_time = na
-if bar_index == 0
-    first_bar_time := time
-estimate_bars_to_end = floor((timenow - time) / ((time - first_bar_time) / bar_index))
-
-if estimate_bars_to_end < block_size * (3 + calc_n_blocks_ahead)
-	recent_row_height = (rolling_high - rolling_low) / {{n_rows}}
-	{% for n in range(n_rows) %}
-	recent_row{{n}}_low := rolling_low + recent_row_height * {{n}}
-	recent_row{{n}}_high := rolling_low + recent_row_height * {{n+1}}
-	recent_row{{n}}_value := level_value(0, block_bar+1, recent_row{{n}}_low, recent_row{{n}}_high)
-	recent_row{{n}}_price := (recent_row{{n}}_low + recent_row{{n}}_high ) / 2
-	recent_row{{n}}_width := floor(visual_row_width * recent_row{{n}}_value / highest_row_value_avg)
-	{% endfor %}
-
-// plot(recent_row0_value, color=color.blue, style=plot.style_linebr)
-// plot(recent_row0_high, color=color.blue, style=plot.style_linebr)
-// plot(recent_row0_low, color=color.blue, style=plot.style_linebr)
-
-////
-// Draw last three blocks
-///
 {% for rn in range(3) -%}
-var line recent{{rn}}_high_line = na
-var line recent{{rn}}_low_line = na
+var line recent{{rn}}_high_line = line.new(bar_index, close, bar_index, close, color=BOUNARY_COLOR)
+var line recent{{rn}}_low_line = line.new(bar_index, close, bar_index, close, color=BOUNARY_COLOR)
 {% for n in range(n_rows) -%}
 var line recent{{rn}}_row{{n}}_line = na
 {% endfor -%}
@@ -170,34 +134,57 @@ if barstate.islast
 		color.{{ color }}
 	{% endfor %}
 
-	if estimate_bars_to_end[recent{{rn}}_start_i] < block_size * (3 + calc_n_blocks_ahead)
+	if not na(time[recent{{rn}}_start_i]) and recent{{rn}}_start_i - recent{{rn}}_end_i > 5
+
 		// high/low bounds
+
 		if na(recent{{rn}}_low_line)
 			recent{{rn}}_low_line := line.new(bar_index, high, bar_index, high, color=BOUNARY_COLOR)
 		if na(recent{{rn}}_high_line)
 			recent{{rn}}_high_line := line.new(bar_index, low, bar_index, low, color=BOUNARY_COLOR)
 
-		line.set_x1(recent{{rn}}_high_line, bar_index - recent{{rn}}_start_i)
-		line.set_x2(recent{{rn}}_high_line, bar_index - recent{{rn}}_end_i)
-		line.set_y1(recent{{rn}}_high_line, rolling_high[recent{{rn}}_end_i])
-		line.set_y2(recent{{rn}}_high_line, rolling_high[recent{{rn}}_end_i])
+		recent{{rn}}_block_high = rolling_high[recent{{rn}}_end_i]
+		recent{{rn}}_block_low = rolling_low[recent{{rn}}_end_i]
 
-		line.set_x1(recent{{rn}}_low_line, bar_index - recent{{rn}}_start_i)
-		line.set_x2(recent{{rn}}_low_line, bar_index - recent{{rn}}_end_i)
-		line.set_y1(recent{{rn}}_low_line, rolling_low[recent{{rn}}_end_i])
-		line.set_y2(recent{{rn}}_low_line, rolling_low[recent{{rn}}_end_i])
+		line.set_xloc(recent{{rn}}_low_line, time[recent{{rn}}_start_i], time_close[recent{{rn}}_end_i], xloc.bar_time)
+		line.set_y1(recent{{rn}}_low_line, recent{{rn}}_block_low)
+		line.set_y2(recent{{rn}}_low_line, recent{{rn}}_block_low)
 
-		// profile rows
+		line.set_xloc(recent{{rn}}_high_line, time[recent{{rn}}_start_i], time_close[recent{{rn}}_end_i], xloc.bar_time)
+		line.set_y1(recent{{rn}}_high_line, recent{{rn}}_block_high)
+		line.set_y2(recent{{rn}}_high_line, recent{{rn}}_block_high)
+
+		// calculate profile rows
+
+		recent{{rn}}_block_height = recent{{rn}}_block_high - recent{{rn}}_block_low
+		recent{{rn}}_row_height =  recent{{rn}}_block_height / {{n_rows}}
+
+		{% for n in range(n_rows) %}
+		recent{{rn}}_row{{n}}_low = recent{{rn}}_block_low + recent{{rn}}_row_height * {{n}}
+		recent{{rn}}_row{{n}}_high = recent{{rn}}_block_low + recent{{rn}}_row_height * {{n+1}}
+
+		recent{{rn}}_row{{n}}_value = 0.0
+		for i = recent{{rn}}_start_i to recent{{rn}}_end_i + 1
+			if low[i] < recent{{rn}}_row{{n}}_high and high[i] > recent{{rn}}_row{{n}}_low
+				recent{{rn}}_row{{n}}_value := recent{{rn}}_row{{n}}_value + custom_volume[i] / max(high[i] - low[i], 1) * max(recent{{rn}}_block_height, 1)
+		{% endfor %}
+
+		{% for n in range(n_rows) -%}
+		recent{{rn}}_row{{n}}_price = (recent{{rn}}_row{{n}}_low + recent{{rn}}_row{{n}}_high ) / 2
+		recent{{rn}}_row{{n}}_width = floor(visual_row_width * recent{{rn}}_row{{n}}_value / highest_row_value_avg)
+		{% endfor %}
+
+		// draw profile rows
+
 		{% for n in range(n_rows) -%}
 		if na(recent{{rn}}_row{{n}}_line)
 			recent{{rn}}_row{{n}}_line := line.new(bar_index, close, bar_index, close, width=2)
 		{% endfor %}
 
 		{% for n in range(n_rows) %}
-		line.set_x1(recent{{rn}}_row{{n}}_line, bar_index - recent{{rn}}_start_i)
-		line.set_x2(recent{{rn}}_row{{n}}_line, bar_index - max(recent{{rn}}_start_i - recent_row{{n}}_width[recent{{rn}}_end_i], 0))
-		line.set_y1(recent{{rn}}_row{{n}}_line, recent_row{{n}}_price[recent{{rn}}_end_i])
-		line.set_y2(recent{{rn}}_row{{n}}_line, recent_row{{n}}_price[recent{{rn}}_end_i])
+		line.set_xloc(recent{{rn}}_row{{n}}_line, time[recent{{rn}}_start_i], time_close[max(recent{{rn}}_start_i - recent{{rn}}_row{{n}}_width, 0)], xloc.bar_time)
+		line.set_y1(recent{{rn}}_row{{n}}_line, recent{{rn}}_row{{n}}_price)
+		line.set_y2(recent{{rn}}_row{{n}}_line, recent{{rn}}_row{{n}}_price)
 		line.set_color(recent{{rn}}_row{{n}}_line, recent{{rn}}_color)
 		{% endfor %}
 
