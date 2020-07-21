@@ -92,6 +92,7 @@ row{{n}}_width = floor(visual_row_width * row{{n}}_value / highest_row_value_avg
 ////
 // Draw history blocks
 ///
+
 bounds_high_y = block_bar != block_size -1 ? block_high[block_bar+1] : na
 bounds_low_y = block_bar != block_size -1 ? block_low[block_bar+1] : na
 plot(bounds_high_y, color=BOUNARY_COLOR, style=plot.style_linebr, offset=-block_size*2, title="History block high")
@@ -120,8 +121,8 @@ plot(history{{pn}}_row{{n}}_y, color=PROFILE{{pn}}_COLOR, style=plot.style_lineb
 ///
 
 {% for rn in range(3) -%}
-var line recent{{rn}}_high_line = line.new(bar_index, close, bar_index, close, color=BOUNARY_COLOR)
-var line recent{{rn}}_low_line = line.new(bar_index, close, bar_index, close, color=BOUNARY_COLOR)
+var line recent{{rn}}_high_line = na
+var line recent{{rn}}_low_line = na
 {% for n in range(n_rows) -%}
 var line recent{{rn}}_row{{n}}_line = na
 {% endfor -%}
@@ -204,17 +205,20 @@ if barstate.islast
 
 	else
 
+		// remove unused lines
+
 		if not na(recent{{rn}}_low_line)
 			line.delete(recent{{rn}}_low_line)
 			recent{{rn}}_low_line := na
 		if not na(recent{{rn}}_high_line)
 			line.delete(recent{{rn}}_high_line)
 			recent{{rn}}_high_line := na
-		{% for n in range(n_rows) %}
+		{% for n in range(n_rows) -%}
 		if not na(recent{{rn}}_row{{n}}_line)
 			line.delete(recent{{rn}}_row{{n}}_line)
 			recent{{rn}}_row{{n}}_line := na
 		{% endfor %}
 
 		0
+
 	{% endfor %}
