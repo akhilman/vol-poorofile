@@ -46,13 +46,20 @@ block_low = rolling_low[block_bar+1]
 
 block_height = (block_high - block_low)
 row_height = block_height / {{n_rows}}
-row_value = custom_volume[block_size] / ceil((high[block_size] - low[block_size]) / row_height) / row_height
+n_rows_affected = 0
 
 {% for n in range(n_rows) %}
 row{{n}}_low = block_low + row_height * {{n}}
 row{{n}}_high = block_low + row_height * {{n+1}}
-row{{n}}_value = high[block_size] > row{{n}}_low and low[block_size] < row{{n}}_high ? row_value : 0
 row{{n}}_price = (row{{n}}_low + row{{n}}_high ) / 2
+row{{n}}_value = 0.0
+if high[block_size] > row{{n}}_low and low[block_size] < row{{n}}_high
+	row{{n}}_value := custom_volume[block_size]
+	n_rows_affected := n_rows_affected + 1
+{% endfor %}
+
+{% for n in range(n_rows) -%}
+row{{n}}_value := row{{n}}_value / n_rows_affected / row_height
 {% endfor %}
 
 // plot(row0_value, color=color.red, style=plot.style_linebr)
@@ -154,17 +161,25 @@ if barstate.islast
 		// calculate profile rows
 
 		recent{{rn}}_block_height = recent{{rn}}_block_high - recent{{rn}}_block_low
-		recent{{rn}}_row_height =  recent{{rn}}_block_height / {{n_rows}}
+		recent{{rn}}_row_height = recent{{rn}}_block_height / {{n_rows}}
 
-		{% for n in range(n_rows) %}
+		{% for n in range(n_rows) -%}
 		recent{{rn}}_row{{n}}_low = recent{{rn}}_block_low + recent{{rn}}_row_height * {{n}}
 		recent{{rn}}_row{{n}}_high = recent{{rn}}_block_low + recent{{rn}}_row_height * {{n+1}}
-
 		recent{{rn}}_row{{n}}_value = 0.0
-		for i = recent{{rn}}_start_i to recent{{rn}}_end_i + 1
-			if low[i] < recent{{rn}}_row{{n}}_high and high[i] > recent{{rn}}_row{{n}}_low
-				recent{{rn}}_row{{n}}_value := recent{{rn}}_row{{n}}_value + custom_volume[i] / ceil((high[i] - low[i]) / recent{{rn}}_row_height) / recent{{rn}}_row_height
 		{% endfor %}
+
+		for i = recent{{rn}}_start_i to recent{{rn}}_end_i + 1
+			bar_n_rows_affected = 0
+			{% for n in range(n_rows) -%}
+			bar_row{{n}}_value = 0.0
+			if low[i] < recent{{rn}}_row{{n}}_high and high[i] > recent{{rn}}_row{{n}}_low
+				bar_row{{n}}_value := custom_volume[i]
+				bar_n_rows_affected := bar_n_rows_affected + 1
+			{% endfor %}
+			{% for n in range(n_rows) -%}
+			recent{{rn}}_row{{n}}_value := recent{{rn}}_row{{n}}_value + bar_row{{n}}_value / bar_n_rows_affected / recent{{rn}}_row_height
+			{% endfor %}
 
 		{% for n in range(n_rows) -%}
 		recent{{rn}}_row{{n}}_price = (recent{{rn}}_row{{n}}_low + recent{{rn}}_row{{n}}_high ) / 2

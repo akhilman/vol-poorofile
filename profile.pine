@@ -29,7 +29,8 @@ custom_volume = use_custom_volume_source ? security(volume_source_symbol, timefr
 block_high = highest(high, block_size)
 block_low = lowest(low, block_size)
 float block_highest_row_value = na
-{% for n in range(n_rows) %}
+
+{% for n in range(n_rows) -%}
 float block_row{{n}}_price = na
 int block_row{{n}}_width = na
 {% endfor %}
@@ -39,22 +40,31 @@ if barstate.islast
 	block_height = block_high - block_low
 	block_row_height =  block_height / {{n_rows}}
 
-	{% for n in range(n_rows) %}
+	{% for n in range(n_rows) -%}
 	block_row{{n}}_low = block_low + block_row_height * {{n}}
 	block_row{{n}}_high = block_low + block_row_height * {{n+1}}
-
 	block_row{{n}}_value = 0.0
-	for i = 0 to block_size + 1
-		if low[i] < block_row{{n}}_high and high[i] > block_row{{n}}_low
-			block_row{{n}}_value := block_row{{n}}_value + custom_volume[i] / ceil((high[i] - low[i]) / block_height)
+	{% endfor %}
 
+	for i = 0 to block_size + 1
+		n_rows_affected = 0
+		{% for n in range(n_rows) -%}
+		bar_row{{n}}_value = 0.0
+		if low[i] < block_row{{n}}_high and high[i] > block_row{{n}}_low
+			bar_row{{n}}_value := custom_volume[i]
+			n_rows_affected := n_rows_affected + 1
+		{% endfor %}
+		{% for n in range(n_rows) -%}
+		block_row{{n}}_value := block_row{{n}}_value + bar_row{{n}}_value / n_rows_affected
+		{% endfor %}
+
+	{% for n in range(n_rows) -%}
 	block_highest_row_value := max(nz(block_highest_row_value), block_row{{n}}_value)
 	{% endfor %}
 
-	{%- for n in range(n_rows) -%}
+	{% for n in range(n_rows) -%}
 	block_row{{n}}_price := (block_row{{n}}_low + block_row{{n}}_high ) / 2
 	block_row{{n}}_width := floor(visual_row_width * block_row{{n}}_value / block_highest_row_value)
-
 	{% endfor %}
 
 ////
