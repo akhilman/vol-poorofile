@@ -98,9 +98,9 @@ bounds_low_y = block_bar != block_size -1 ? block_low[block_bar+1] : na
 plot(bounds_high_y, color=BOUNARY_COLOR, style=plot.style_linebr, offset=-block_size*2, title="History block high")
 plot(bounds_low_y, color=BOUNARY_COLOR, style=plot.style_linebr, offset=-block_size*2, title="History block low")
 
-{%- for color in block_colors -%}
-{%- set pn = (loop.length - loop.index + 1) % loop.length + 1 %}
-{%- set num_colors = loop.length %}
+{% for color in block_colors %}
+{% set pn = (loop.length - loop.index + 1) % loop.length + 1 -%}
+{% set num_colors = loop.length -%}
 
 history{{pn}}_block_bar = (block_index + {{loop.index}}) % {{num_colors}} * block_size + block_bar
 
@@ -108,12 +108,11 @@ history{{pn}}_block_bar = (block_index + {{loop.index}}) % {{num_colors}} * bloc
 history{{pn}}_row{{n}}_price = row{{n}}_price[history{{pn}}_block_bar+1]
 history{{pn}}_row{{n}}_width = min({{block_size * num_colors - 2}}, row{{n}}_width[history{{pn}}_block_bar+1])
 history{{pn}}_row{{n}}_y = history{{pn}}_block_bar <= history{{pn}}_row{{n}}_width ? history{{pn}}_row{{n}}_price : na
-
-{% endfor -%}
+{% endfor %}
 
 {% for n in range(n_rows) -%}
 plot(history{{pn}}_row{{n}}_y, color=PROFILE{{pn}}_COLOR, style=plot.style_linebr, linewidth=2, offset=-block_size*2, title="History {{pn}} row {{n}}")
-{% endfor -%}
+{% endfor %}
 {% endfor %}
 
 ////
