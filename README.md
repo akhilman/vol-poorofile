@@ -7,18 +7,19 @@ This is an attempt to get something more or less similar to the volume profile f
 
 ## Install
 
-* Add [Poor man's volume profile][vpoorof] to you TradingView chart
-* Add Poor man's volume profile (Big picture) to you TradingView chart (Not released yet)
+* Add [Poor man's volume profile][PMVolProf] to you TradingView chart
+* Add [Poor man's volume clusters][PMVolClust] to you TradingView chart
 
 
 ## Build
 
 ```bash
-# install jinja2
+# install dependencies
 pip install -r requirements.txt
 # generate code
-./generate.py vol-poorofile.pine vol-poorofile.dist.pine
-./generate.py vol-poorofile-big.pine vol-poorofile-big.dist.pine
+make
+# take ready to use pine scripts from dist/
 ```
 
-[vpoorof]: https://www.tradingview.com/script/IWdpl712-Poor-man-s-volume-profile/
+[PMVolProf]: https://www.tradingview.com/script/IWdpl712-Poor-man-s-volume-profile/
+[PMVolClust]: https://www.tradingview.com/script/eksYnVaP-Poor-man-s-volume-clusters/
