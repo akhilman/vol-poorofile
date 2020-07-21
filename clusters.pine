@@ -13,7 +13,7 @@
 {% set max_bars_back = (max_bars_back or 500) | int -%}
 
 //@version=4
-study("Poor man's volume profile", "VPoorof", overlay=true, max_bars_back={{max_bars_back}})
+study("Poor man's volume clusters", "PMVolClust", overlay=true, max_bars_back={{max_bars_back}})
 
 block_size = input({{block_size}}, "Bars in profile block", minval=10, maxval={{max_bars_back//3}})
 visual_row_width = input({{visual_row_width}}, "Visual row width", minval=10)
