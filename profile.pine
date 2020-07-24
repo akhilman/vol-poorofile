@@ -73,7 +73,7 @@ if barstate.islast
 
 var int first_bar_time = time
 if barstate.isfirst
-	first_bar_time = time
+	first_bar_time := time
 
 var line block_high_line = line.new(bar_index, high, bar_index, high, color=PROFILE_COLOR)
 var line block_low_line = line.new(bar_index, low, bar_index, low, color=PROFILE_COLOR)
