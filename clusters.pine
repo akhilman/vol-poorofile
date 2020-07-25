@@ -84,7 +84,7 @@ highest_row_value_avg = ema(highest_row_value, filter_size)
 // plot(highest_row_value_avg, color=color.blue)
 
 {% for n in range(n_rows) -%}
-row{{n}}_width = floor(visual_row_width * row{{n}}_value / highest_row_value_avg)
+row{{n}}_width = floor(visual_row_width * row{{n}}_value / highest_row_value_avg[block_bar+1])
 {% endfor %}
 
 // plot(row0_value, color=color.red, style=plot.style_linebr, offset=-block_size)
@@ -181,9 +181,10 @@ if barstate.islast
 			recent{{rn}}_row{{n}}_value := recent{{rn}}_row{{n}}_value + bar_row{{n}}_value / bar_n_rows_affected / recent{{rn}}_row_height
 			{% endfor %}
 
+		recent{{rn}}_avg_i = min(recent{{rn}}_start_i + 1 + block_size * {{rn + 2}}, bar_index)
 		{% for n in range(n_rows) -%}
 		recent{{rn}}_row{{n}}_price = (recent{{rn}}_row{{n}}_low + recent{{rn}}_row{{n}}_high ) / 2
-		recent{{rn}}_row{{n}}_width = floor(visual_row_width * recent{{rn}}_row{{n}}_value / highest_row_value_avg)
+		recent{{rn}}_row{{n}}_width = floor(visual_row_width * recent{{rn}}_row{{n}}_value / highest_row_value_avg[recent{{rn}}_avg_i])
 		{% endfor %}
 
 		// draw profile rows
