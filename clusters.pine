@@ -9,6 +9,7 @@
 {% set visual_row_width = (visual_row_width or 10) | float -%}
 {% set block_colors = (block_colors or 'purple,teal') | split(',') -%}
 {% set boundary_color = boundary_color or 'blue' -%}
+{% set vpoc_color = vpoc_color or 'yellow' -%}
 {% set filter_size = (filter_size or 200) | int -%}
 {% set max_bars_back = (max_bars_back or 500) | int -%}
 
@@ -17,6 +18,7 @@ study("Poor man's volume clusters", "PMVolClust", overlay=true, max_bars_back={{
 
 block_size = input({{block_size}}, "Bars in profile block", minval=10, maxval={{max_bars_back//3}})
 visual_row_width = input({{visual_row_width}}, "Visual row width", minval=10)
+show_vpoc = input(true, "Show volume point of control")
 filter_size = input({{filter_size}}, "Profile maximum high pass filter size in bars")
 use_custom_volume_source = input(false, "Use custom volume source")
 volume_source_symbol = input("", "Custom volume source symbol", input.symbol)
@@ -25,6 +27,7 @@ BOUNARY_COLOR = color.{{boundary_color}}
 {%- for color in block_colors %}
 PROFILE{{loop.index}}_COLOR = color.{{color}}
 {%- endfor %}
+VPOC_COLOR = color.{{vpoc_color}}
 
 custom_volume = use_custom_volume_source ? security(volume_source_symbol, timeframe.period, volume) : volume
 
@@ -69,10 +72,13 @@ if block_bar != 0
 	row{{n}}_value := row{{n}}_value + row{{n}}_value[1]
 	{% endfor %}
 
+float vpoc_price = na
 highest_row_value = 0.0
 if block_bar == block_size - 1
 	{% for n in range(n_rows) -%}
-	highest_row_value := max(row{{n}}_value, highest_row_value)
+	if highest_row_value < row{{n}}_value
+		highest_row_value := row{{n}}_value
+		vpoc_price := row{{n}}_price
 	{% endfor %}
 else
 	highest_row_value := highest_row_value[1]
@@ -98,6 +104,9 @@ bounds_low_y = block_bar != block_size -1 ? block_low[block_bar+1] : na
 plot(bounds_high_y, color=BOUNARY_COLOR, style=plot.style_linebr, offset=-block_size*2, title="History block high")
 plot(bounds_low_y, color=BOUNARY_COLOR, style=plot.style_linebr, offset=-block_size*2, title="History block low")
 
+vpoc_y = show_vpoc ? vpoc_price : na
+plotshape(vpoc_y, title="VPoC", location=location.absolute, color=VPOC_COLOR, style=shape.diamond, offset=-block_size*2)
+
 {% for color in block_colors %}
 {% set pn = (loop.length - loop.index + 1) % loop.length + 1 -%}
 {% set num_colors = loop.length -%}
@@ -122,6 +131,9 @@ plot(history{{pn}}_row{{n}}_y, color=PROFILE{{pn}}_COLOR, style=plot.style_lineb
 {% for rn in range(3) -%}
 var line recent{{rn}}_high_line = na
 var line recent{{rn}}_low_line = na
+{% if rn < 2 %}
+var line recent{{rn}}_vpoc_line = na
+{% endif %}
 {% for n in range(n_rows) -%}
 var line recent{{rn}}_row{{n}}_line = na
 {% endfor -%}
@@ -187,6 +199,16 @@ if barstate.islast
 		recent{{rn}}_row{{n}}_width = floor(visual_row_width * recent{{rn}}_row{{n}}_value / highest_row_value_avg[recent{{rn}}_avg_i])
 		{% endfor %}
 
+		// calculate vpoc
+
+		float recent{{rn}}_vpoc_price = na
+		float recent{{rn}}_highes_row_value = 0
+		{% for n in range(n_rows) -%}
+		if recent{{rn}}_highes_row_value < recent{{rn}}_row{{n}}_value
+			recent{{rn}}_highes_row_value := recent{{rn}}_row{{n}}_value
+			recent{{rn}}_vpoc_price := recent{{rn}}_row{{n}}_price
+		{% endfor %}
+
 		// draw profile rows
 
 		{% for n in range(n_rows) -%}
@@ -201,6 +223,22 @@ if barstate.islast
 		line.set_color(recent{{rn}}_row{{n}}_line, recent{{rn}}_color)
 		{% endfor %}
 
+		{% if rn < 2 %}
+		// draw vpoc
+
+		if show_vpoc
+			if na(recent{{rn}}_vpoc_line)
+				recent{{rn}}_vpoc_line := line.new(bar_index, close, bar_index, close, width=2, color=VPOC_COLOR)
+
+			line.set_xloc(recent{{rn}}_vpoc_line, time[recent{{rn}}_start_i + 2], time[recent{{rn}}_start_i + 1], xloc.bar_time)
+			line.set_y1(recent{{rn}}_vpoc_line, recent{{rn}}_vpoc_price)
+			line.set_y2(recent{{rn}}_vpoc_line, recent{{rn}}_vpoc_price)
+
+		if not show_vpoc and not na(recent{{rn}}_vpoc_line)
+			line.delete(recent{{rn}}_vpoc_line)
+			recent{{rn}}_vpoc_line := na
+		{% endif %}
+
 		0
 
 	else
@@ -213,6 +251,11 @@ if barstate.islast
 		if not na(recent{{rn}}_high_line)
 			line.delete(recent{{rn}}_high_line)
 			recent{{rn}}_high_line := na
+		{% if rn < 2 %}
+		if not na(recent{{rn}}_vpoc_line)
+			line.delete(recent{{rn}}_vpoc_line)
+			recent{{rn}}_vpoc_line := na
+		{% endif %}
 		{% for n in range(n_rows) -%}
 		if not na(recent{{rn}}_row{{n}}_line)
 			line.delete(recent{{rn}}_row{{n}}_line)
