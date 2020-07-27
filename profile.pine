@@ -9,7 +9,6 @@
 {% set profile_color = profile_color or 'gray' -%}
 {% set peak_size = peak_size or 5 | int -%}
 {% set peak_color = peak_color or 'orange' -%}
-{% set peak_label_text_color = peak_label_text_color or 'black' -%}
 {% set visual_row_width = (visual_row_width or 20) | float -%}
 {% set max_bars_back = (max_bars_back or 500) | int -%}
 
@@ -19,13 +18,11 @@ study("Poor man's volume profile", "PMVolProf", overlay=true, max_bars_back={{ma
 block_size = input({{block_size}}, "Bars in profile block", minval=10, maxval={{max_bars_back}})
 visual_row_width = input({{visual_row_width}}, "Visual row width", minval=10)
 show_peaks = input(true, "Show peaks")
-show_peak_labels = input(true, "Show peak labels")
 use_custom_volume_source = input(false, "Use custom volume source")
 volume_source_symbol = input("", "Custom volume source symbol", input.symbol)
 
 PROFILE_COLOR = color.{{profile_color}}
 PEAK_COLOR = color.{{peak_color}}
-PEAK_LABEL_TEXT_COLOR = color.{{peak_label_text_color}}
 
 custom_volume = use_custom_volume_source ? security(volume_source_symbol, timeframe.period, volume) : volume
 
@@ -112,29 +109,4 @@ if barstate.islast
 	line.set_y1(row{{n}}_line, row{{n}}_price)
 	line.set_y2(row{{n}}_line, row{{n}}_price)
 	line.set_color(row{{n}}_line, row{{n}}_line_color)
-	{% endfor %}
-
-////
-// Draw peak labels
-///
-
-{% for n in range(n_rows) -%}
-var label row{{n}}_peak_label = na
-{% endfor %}
-
-if barstate.islast
-	{% for n in range(n_rows) -%}
-	if show_peak_labels and row{{n}}_is_peak
-		if na(row{{n}}_peak_label)
-			row{{n}}_peak_label := label.new(bar_index, close, size=size.normal, style=label.style_label_left, yloc=yloc.price, color=PEAK_COLOR, textcolor=PEAK_LABEL_TEXT_COLOR)
-		label.set_x(row{{n}}_peak_label, bar_index)
-		label.set_y(row{{n}}_peak_label, row{{n}}_price)
-		label.set_text(row{{n}}_peak_label, tostring(row{{n}}_price, "#.##"))
-	{% endfor %}
-
-	{% for n in range(n_rows) -%}
-	if not row{{n}}_is_peak
-		if not na(row{{n}}_peak_label)
-			label.delete(row{{n}}_peak_label)
-			row{{n}}_peak_label := na
 	{% endfor %}
