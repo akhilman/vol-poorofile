@@ -105,7 +105,7 @@ plot(bounds_high_y, color=BOUNARY_COLOR, style=plot.style_linebr, offset=-block_
 plot(bounds_low_y, color=BOUNARY_COLOR, style=plot.style_linebr, offset=-block_size*2, title="History block low")
 
 vpoc_y = show_vpoc ? vpoc_price : na
-plotshape(vpoc_y, title="VPoC", location=location.absolute, color=VPOC_COLOR, style=shape.diamond, offset=-block_size*2)
+plotshape(vpoc_y, title="VPoC", location=location.absolute, color=VPOC_COLOR, style=shape.diamond, size=size.tiny, offset=-block_size*2)
 
 {% for color in block_colors %}
 {% set pn = (loop.length - loop.index + 1) % loop.length + 1 -%}
@@ -132,7 +132,7 @@ plot(history{{pn}}_row{{n}}_y, color=PROFILE{{pn}}_COLOR, style=plot.style_lineb
 var line recent{{rn}}_high_line = na
 var line recent{{rn}}_low_line = na
 {% if rn < 2 %}
-var line recent{{rn}}_vpoc_line = na
+var label recent{{rn}}_vpoc_label = na
 {% endif %}
 {% for n in range(n_rows) -%}
 var line recent{{rn}}_row{{n}}_line = na
@@ -227,16 +227,15 @@ if barstate.islast
 		// draw vpoc
 
 		if show_vpoc
-			if na(recent{{rn}}_vpoc_line)
-				recent{{rn}}_vpoc_line := line.new(bar_index, close, bar_index, close, width=2, color=VPOC_COLOR)
+			if na(recent{{rn}}_vpoc_label)
+				recent{{rn}}_vpoc_label := label.new(bar_index, close, yloc=yloc.price, style=label.style_diamond, size=size.tiny, color=VPOC_COLOR)
 
-			line.set_xloc(recent{{rn}}_vpoc_line, time[recent{{rn}}_start_i + 2], time[recent{{rn}}_start_i + 1], xloc.bar_time)
-			line.set_y1(recent{{rn}}_vpoc_line, recent{{rn}}_vpoc_price)
-			line.set_y2(recent{{rn}}_vpoc_line, recent{{rn}}_vpoc_price)
+			label.set_xloc(recent{{rn}}_vpoc_label, time[recent{{rn}}_start_i + 1], xloc.bar_time)
+			label.set_y(recent{{rn}}_vpoc_label, recent{{rn}}_vpoc_price)
 
-		if not show_vpoc and not na(recent{{rn}}_vpoc_line)
-			line.delete(recent{{rn}}_vpoc_line)
-			recent{{rn}}_vpoc_line := na
+		if not show_vpoc and not na(recent{{rn}}_vpoc_label)
+			label.delete(recent{{rn}}_vpoc_label)
+			recent{{rn}}_vpoc_label := na
 		{% endif %}
 
 		0
@@ -252,9 +251,9 @@ if barstate.islast
 			line.delete(recent{{rn}}_high_line)
 			recent{{rn}}_high_line := na
 		{% if rn < 2 %}
-		if not na(recent{{rn}}_vpoc_line)
-			line.delete(recent{{rn}}_vpoc_line)
-			recent{{rn}}_vpoc_line := na
+		if not na(recent{{rn}}_vpoc_label)
+			label.delete(recent{{rn}}_vpoc_label)
+			recent{{rn}}_vpoc_label := na
 		{% endif %}
 		{% for n in range(n_rows) -%}
 		if not na(recent{{rn}}_row{{n}}_line)
