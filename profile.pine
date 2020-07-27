@@ -7,9 +7,8 @@
 {% set n_rows = (n_rows or 40) | int -%}
 {% set block_size = (block_size or 200) | int -%}
 {% set profile_color = profile_color or 'gray' -%}
-{% set kind_size = kind_size or 5 | int -%}
+{% set peak_size = peak_size or 5 | int -%}
 {% set peak_color = peak_color or 'yellow' -%}
-{% set hollow_color = hollow_color or 'blue' -%}
 {% set visual_row_width = (visual_row_width or 20) | float -%}
 {% set max_bars_back = (max_bars_back or 500) | int -%}
 
@@ -19,17 +18,11 @@ study("Poor man's volume profile", "PMVolProf", overlay=true, max_bars_back={{ma
 block_size = input({{block_size}}, "Bars in profile block", minval=10, maxval={{max_bars_back}})
 visual_row_width = input({{visual_row_width}}, "Visual row width", minval=10)
 show_peaks = input(true, "Show peaks")
-show_hollows = input(true, "Show hollows")
 use_custom_volume_source = input(false, "Use custom volume source")
 volume_source_symbol = input("", "Custom volume source symbol", input.symbol)
 
 PROFILE_COLOR = color.{{profile_color}}
-HOLLOW_COLOR = color.{{hollow_color}}
 PEAK_COLOR = color.{{peak_color}}
-
-NONE = 0
-HOLLOW = 1
-PEAK = 2
 
 custom_volume = use_custom_volume_source ? security(volume_source_symbol, timeframe.period, volume) : volume
 
@@ -44,7 +37,7 @@ float highest_row_value = na
 {% for n in range(n_rows) -%}
 float row{{n}}_price = na
 int row{{n}}_width = na
-int row{{n}}_kind = 0
+row{{n}}_is_peak = false
 {% endfor %}
 
 if barstate.islast
@@ -80,16 +73,11 @@ if barstate.islast
 	{% endfor %}
 
 	{% for n in range(n_rows) -%}
-	if {% for m in range([n-kind_size, 0]|max, [n+kind_size+1, n_rows]|min) | reject("eq", n) -%}
-		{%- if not loop.first %} and {% endif -%}
-		row{{n}}_value <= row{{m}}_value
-		{%- endfor %}
-		row{{n}}_kind := HOLLOW
-	if {% for m in range([n-kind_size, 0]|max, [n+kind_size+1, n_rows]|min) | reject("eq", n) -%}
+	if {% for m in range([n-peak_size, 0]|max, [n+peak_size+1, n_rows]|min) | reject("eq", n) -%}
 		{%- if not loop.first %} and {% endif -%}
 		row{{n}}_value >= row{{m}}_value
 		{%- endfor %}
-		row{{n}}_kind := PEAK
+		row{{n}}_is_peak := true
 	{% endfor %}
 
 ////
@@ -116,7 +104,7 @@ if barstate.islast
 	line.set_y2(block_low_line, block_low)
 
 	{% for n in range(n_rows) -%}
-	row{{n}}_line_color = show_peaks and row{{n}}_kind == PEAK ? PEAK_COLOR : show_hollows and row{{n}}_kind == HOLLOW ? HOLLOW_COLOR : PROFILE_COLOR
+	row{{n}}_line_color = show_peaks and row{{n}}_is_peak ? PEAK_COLOR : PROFILE_COLOR
 	line.set_xloc(row{{n}}_line, max(time_close[row{{n}}_width], first_bar_time), time_close, xloc.bar_time)
 	line.set_y1(row{{n}}_line, row{{n}}_price)
 	line.set_y2(row{{n}}_line, row{{n}}_price)
