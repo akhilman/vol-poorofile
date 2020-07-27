@@ -9,7 +9,7 @@
 {% set visual_row_width = (visual_row_width or 10) | float -%}
 {% set block_colors = (block_colors or 'purple,teal') | split(',') -%}
 {% set boundary_color = boundary_color or 'blue' -%}
-{% set vpoc_color = vpoc_color or 'yellow' -%}
+{% set vpoc_color = vpoc_color or 'orange' -%}
 {% set filter_size = (filter_size or 200) | int -%}
 {% set max_bars_back = (max_bars_back or 500) | int -%}
 

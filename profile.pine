@@ -8,7 +8,7 @@
 {% set block_size = (block_size or 200) | int -%}
 {% set profile_color = profile_color or 'gray' -%}
 {% set peak_size = peak_size or 5 | int -%}
-{% set peak_color = peak_color or 'yellow' -%}
+{% set peak_color = peak_color or 'orange' -%}
 {% set peak_label_text_color = peak_label_text_color or 'black' -%}
 {% set visual_row_width = (visual_row_width or 20) | float -%}
 {% set max_bars_back = (max_bars_back or 500) | int -%}
