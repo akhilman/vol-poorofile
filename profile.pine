@@ -18,8 +18,8 @@ study("Poor man's volume profile", "PMVolProf", overlay=true, max_bars_back={{ma
 
 block_size = input({{block_size}}, "Bars in profile block", minval=10, maxval={{max_bars_back}})
 visual_row_width = input({{visual_row_width}}, "Visual row width", minval=10)
-show_peaks = input(true, "Show volume peaks")
-show_hollows = input(true, "Show volume hollows")
+show_peaks = input(true, "Show peaks")
+show_hollows = input(true, "Show hollows")
 use_custom_volume_source = input(false, "Use custom volume source")
 volume_source_symbol = input("", "Custom volume source symbol", input.symbol)
 
