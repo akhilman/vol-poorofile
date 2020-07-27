@@ -32,7 +32,7 @@ custom_volume = use_custom_volume_source ? security(volume_source_symbol, timefr
 
 block_high = highest(high, block_size)
 block_low = lowest(low, block_size)
-float highest_row_value = na
+float highest_row_value = 0
 
 {% for n in range(n_rows) -%}
 float row{{n}}_price = na
@@ -56,15 +56,15 @@ if barstate.islast
 		{% for n in range(n_rows) -%}
 		bar_row{{n}}_value = 0.0
 		if low[i] < row{{n}}_high and high[i] > row{{n}}_low
-			bar_row{{n}}_value := custom_volume[i]
+			bar_row{{n}}_value := nz(custom_volume[i])
 			n_rows_affected := n_rows_affected + 1
 		{% endfor %}
 		{% for n in range(n_rows) -%}
-		row{{n}}_value := row{{n}}_value + bar_row{{n}}_value / n_rows_affected
+		row{{n}}_value := row{{n}}_value + (n_rows_affected != 0 ? bar_row{{n}}_value / n_rows_affected : 0)
 		{% endfor %}
 
 	{% for n in range(n_rows) -%}
-	highest_row_value := max(nz(highest_row_value), row{{n}}_value)
+	highest_row_value := max(highest_row_value, row{{n}}_value)
 	{% endfor %}
 
 	{% for n in range(n_rows) -%}
