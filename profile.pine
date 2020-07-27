@@ -28,43 +28,43 @@ custom_volume = use_custom_volume_source ? security(volume_source_symbol, timefr
 
 block_high = highest(high, block_size)
 block_low = lowest(low, block_size)
-float block_highest_row_value = na
+float highest_row_value = na
 
 {% for n in range(n_rows) -%}
-float block_row{{n}}_price = na
-int block_row{{n}}_width = na
+float row{{n}}_price = na
+int row{{n}}_width = na
 {% endfor %}
 
 if barstate.islast
 
 	block_height = block_high - block_low
-	block_row_height =  block_height / {{n_rows}}
+	row_height =  block_height / {{n_rows}}
 
 	{% for n in range(n_rows) -%}
-	block_row{{n}}_low = block_low + block_row_height * {{n}}
-	block_row{{n}}_high = block_low + block_row_height * {{n+1}}
-	block_row{{n}}_value = 0.0
+	row{{n}}_low = block_low + row_height * {{n}}
+	row{{n}}_high = block_low + row_height * {{n+1}}
+	row{{n}}_value = 0.0
 	{% endfor %}
 
 	for i = 0 to block_size + 1
 		n_rows_affected = 0
 		{% for n in range(n_rows) -%}
 		bar_row{{n}}_value = 0.0
-		if low[i] < block_row{{n}}_high and high[i] > block_row{{n}}_low
+		if low[i] < row{{n}}_high and high[i] > row{{n}}_low
 			bar_row{{n}}_value := custom_volume[i]
 			n_rows_affected := n_rows_affected + 1
 		{% endfor %}
 		{% for n in range(n_rows) -%}
-		block_row{{n}}_value := block_row{{n}}_value + bar_row{{n}}_value / n_rows_affected
+		row{{n}}_value := row{{n}}_value + bar_row{{n}}_value / n_rows_affected
 		{% endfor %}
 
 	{% for n in range(n_rows) -%}
-	block_highest_row_value := max(nz(block_highest_row_value), block_row{{n}}_value)
+	highest_row_value := max(nz(highest_row_value), row{{n}}_value)
 	{% endfor %}
 
 	{% for n in range(n_rows) -%}
-	block_row{{n}}_price := (block_row{{n}}_low + block_row{{n}}_high ) / 2
-	block_row{{n}}_width := floor(visual_row_width * block_row{{n}}_value / block_highest_row_value)
+	row{{n}}_price := (row{{n}}_low + row{{n}}_high ) / 2
+	row{{n}}_width := floor(visual_row_width * row{{n}}_value / highest_row_value)
 	{% endfor %}
 
 ////
@@ -78,7 +78,7 @@ if barstate.isfirst
 var line block_high_line = line.new(bar_index, high, bar_index, high, color=PROFILE_COLOR)
 var line block_low_line = line.new(bar_index, low, bar_index, low, color=PROFILE_COLOR)
 {% for n in range(n_rows) -%}
-var line block_row{{n}}_line = line.new(bar_index, close, bar_index, close, width=2, color=PROFILE_COLOR)
+var line row{{n}}_line = line.new(bar_index, close, bar_index, close, width=2, color=PROFILE_COLOR)
 {% endfor %}
 
 if barstate.islast
@@ -91,7 +91,7 @@ if barstate.islast
 	line.set_y2(block_low_line, block_low)
 
 	{% for n in range(n_rows) -%}
-	line.set_xloc(block_row{{n}}_line, max(time_close[block_row{{n}}_width], first_bar_time), time_close, xloc.bar_time)
-	line.set_y1(block_row{{n}}_line, block_row{{n}}_price)
-	line.set_y2(block_row{{n}}_line, block_row{{n}}_price)
+	line.set_xloc(row{{n}}_line, max(time_close[row{{n}}_width], first_bar_time), time_close, xloc.bar_time)
+	line.set_y1(row{{n}}_line, row{{n}}_price)
+	line.set_y2(row{{n}}_line, row{{n}}_price)
 	{% endfor %}
