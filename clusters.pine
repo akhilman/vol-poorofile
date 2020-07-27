@@ -99,13 +99,14 @@ row{{n}}_width = floor(visual_row_width * row{{n}}_value / highest_row_value_avg
 // Draw history blocks
 ///
 
+// draw boudns
+
 bounds_high_y = block_bar != block_size -1 ? block_high[block_bar+1] : na
 bounds_low_y = block_bar != block_size -1 ? block_low[block_bar+1] : na
 plot(bounds_high_y, color=BOUNARY_COLOR, style=plot.style_linebr, offset=-block_size*2, title="History block high")
 plot(bounds_low_y, color=BOUNARY_COLOR, style=plot.style_linebr, offset=-block_size*2, title="History block low")
 
-vpoc_y = show_vpoc ? vpoc_price : na
-plotshape(vpoc_y, title="VPoC", location=location.absolute, color=VPOC_COLOR, style=shape.diamond, size=size.tiny, offset=-block_size*2)
+// draw profile
 
 {% for color in block_colors %}
 {% set pn = (loop.length - loop.index + 1) % loop.length + 1 -%}
@@ -123,6 +124,11 @@ history{{pn}}_row{{n}}_y = history{{pn}}_block_bar <= history{{pn}}_row{{n}}_wid
 plot(history{{pn}}_row{{n}}_y, color=PROFILE{{pn}}_COLOR, style=plot.style_linebr, linewidth=2, offset=-block_size*2, title="History {{pn}} row {{n}}")
 {% endfor %}
 {% endfor %}
+
+// draw vpoc
+
+vpoc_y = show_vpoc ? vpoc_price : na
+plotshape(vpoc_y, title="VPoC", location=location.absolute, color=VPOC_COLOR, style=shape.diamond, size=size.tiny, offset=-block_size*2)
 
 ////
 // Caclulate and draw last three blocks
