@@ -20,6 +20,7 @@ block_size = input({{block_size}}, "Bars in profile block", minval=10, maxval={{
 visual_row_width = input({{visual_row_width}}, "Visual row width", minval=10)
 show_vpoc = input(true, "Show volume point of control")
 filter_size = input({{filter_size}}, "Profile maximum high pass filter size in bars")
+snap_to_session = input(true, "Snap profile to session time")
 use_custom_volume_source = input(false, "Use custom volume source")
 volume_source_symbol = input("", "Custom volume source symbol", input.symbol)
 
@@ -32,49 +33,222 @@ VPOC_COLOR = color.{{vpoc_color}}
 custom_volume = use_custom_volume_source ? security(volume_source_symbol, timeframe.period, volume) : volume
 
 ////
-// Calculate profiles
+// Calculate block size
 ///
 
-block_index = floor(bar_index / block_size)
-block_bar = bar_index % block_size
+I_1S = 1
+I_5S = 5
+I_15S = 15
+I_30S = 30
+I_1M = 60
+I_3M = 3 * 60
+I_5M = 5 * 60
+I_15M = 15 * 60
+I_30M = 30 * 60
+I_1H = 60 * 60
+I_2H = 2 * 60 * 60
+I_3H = 3 * 60 * 60
+I_4H = 4 * 60 * 60
+I_DAY = 24 * 60 * 60
+I_WEEK = 7 * 24 * 60 * 60
+I_MONTH = 31 * 24 * 60 * 60
+I_YEAR = 365 * 24 * 60 * 60
+
+T_1S = "1S"
+T_5S = "5S"
+T_15S = "15S"
+T_30S = "30S"
+T_1M = "1"
+T_3M = "3"
+T_5M = "5"
+T_15M = "15"
+T_30M = "30"
+T_1H = "60"
+T_2H = "120"
+T_3H = "180"
+T_4H = "240"
+T_DAY = "1D"
+T_WEEK = "1W"
+T_MONTH = "1M"
+T_YEAR = "12M"
+
+int bar_interval = if timeframe.isseconds
+	timeframe.multiplier
+else if timeframe.isminutes
+	timeframe.multiplier * I_1M
+else if timeframe.isdaily
+	timeframe.multiplier * I_DAY
+else if timeframe.ismonthly
+	timeframe.multiplier * I_MONTH
+else
+	na
+
+int block_interval = if bar_interval * block_size <= I_1S
+	I_1S
+else if bar_interval * block_size <= I_5S
+	I_5S
+else if bar_interval * block_size <= I_15S
+	I_15S
+else if bar_interval * block_size <= I_30S
+	I_30S
+else if bar_interval * block_size <= I_1M
+	I_1M
+else if bar_interval * block_size <= I_3M
+	I_3M
+else if bar_interval * block_size <= I_5M
+	I_5M
+else if bar_interval * block_size <= I_15M
+	I_15M
+else if bar_interval * block_size <= I_30M
+	I_30M
+else if bar_interval * block_size <= I_1H
+	I_1H
+else if bar_interval * block_size <= I_2H
+	I_2H
+else if bar_interval * block_size <= I_3H
+	I_3H
+else if bar_interval * block_size <= I_4H
+	I_3H
+else if bar_interval * block_size <= I_DAY
+	I_DAY
+else if bar_interval * block_size <= I_WEEK
+	I_WEEK
+else if bar_interval * block_size <= I_MONTH
+	I_MONTH
+else if bar_interval * block_size <= I_YEAR
+	I_YEAR
+else
+	na
+
+string block_timeframe = if block_interval == I_1S
+	T_1S
+else if block_interval == I_5S
+	T_5S
+else if block_interval == I_15S
+	T_15S
+else if block_interval == I_30S
+	T_30S
+else if block_interval == I_1M
+	T_1M
+else if block_interval == I_3M
+	T_3M
+else if block_interval == I_5M
+	T_5M
+else if block_interval == I_15M
+	T_15M
+else if block_interval == I_30M
+	T_30M
+else if block_interval == I_1H
+	T_1H
+else if block_interval == I_2H
+	T_2H
+else if block_interval == I_3H
+	T_3H
+else if block_interval == I_4H
+	T_4H
+else if block_interval == I_DAY
+	T_DAY
+else if block_interval == I_WEEK
+	T_WEEK
+else if block_interval == I_MONTH
+	T_MONTH
+else if block_interval == I_YEAR
+	T_YEAR
+else
+	timeframe.period
+
+plot_offset = na(block_interval) ? block_size : ceil(block_interval / bar_interval)
+
+////
+// Calculate block high, low and bar number
+///
+
+int block_index = 0
+int block_bar = 0
+
+block_bar_time = security(syminfo.tickerid, block_timeframe, time, lookahead=barmerge.lookahead_on)
+
+if na(block_interval)
+	block_index := floor(bar_index / block_size)
+	block_bar := bar_index % block_size
+else
+	if block_bar_time[1] != block_bar_time
+		block_bar := 0
+		block_index := nz(block_index[1]) + 1
+	else
+		block_bar := nz(block_bar[1]) + 1
+		block_index := nz(block_index[1])
 
 rolling_high = highest(block_bar + 1)
 rolling_low = lowest(block_bar + 1)
 
-block_high = rolling_high[block_bar+1]
-block_low = rolling_low[block_bar+1]
+plot(block_bar, color=color.green)
+// plot(rolling_high, color=color.green)
+// plot(rolling_low, color=color.green)
 
-// plot(block_high, color=color.green)
-// plot(block_low, color=color.green)
 
-block_height = (block_high - block_low)
-row_height = block_height / {{n_rows}}
-n_rows_affected = 0
+////
+// Calculate profiles
+///
 
+int block_start_index = if block_bar == 0
+	bar_index[block_bar[1] + 1]
+else if barstate.islast
+	bar_index[block_bar[1]]
+else
+	na
+
+int block_end_index = if block_bar == 0
+	bar_index[1]
+else if barstate.islast
+	bar_index
+else
+	na
+
+float block_high = na
+float block_low = na
 {% for n in range(n_rows) %}
-row{{n}}_low = block_low + row_height * {{n}}
-row{{n}}_high = block_low + row_height * {{n+1}}
-row{{n}}_price = (row{{n}}_low + row{{n}}_high ) / 2
-row{{n}}_value = 0.0
-if high[block_size] > row{{n}}_low and low[block_size] < row{{n}}_high
-	row{{n}}_value := custom_volume[block_size]
-	n_rows_affected := n_rows_affected + 1
+float row{{n}}_low = na
+float row{{n}}_high = na
+float row{{n}}_volume = na
 {% endfor %}
 
-{% for n in range(n_rows) -%}
-row{{n}}_value := row{{n}}_value / n_rows_affected / row_height
-{% endfor %}
+if not na(block_end_index)
+	block_high := rolling_high[bar_index - block_end_index]
+	block_low := rolling_low[bar_index - block_end_index]
 
-// plot(row0_value, color=color.red, style=plot.style_linebr)
+	block_height = (block_high - block_low)
+	row_height = block_height / {{n_rows}}
 
-if block_bar != 0
-	{% for n in range(n_rows) -%}
-	row{{n}}_value := row{{n}}_value + row{{n}}_value[1]
+	{% for n in range(n_rows) %}
+	row{{n}}_low := block_low + row_height * {{n}}
+	row{{n}}_high := block_low + row_height * {{n+1}}
+	row{{n}}_volume := 0.0
 	{% endfor %}
 
-float vpoc_price = na
+	for i = (bar_index - block_end_index) to (bar_index - block_start_index) + 1
+		bar_n_rows_affected = 0
+		{% for n in range(n_rows) -%}
+		bar_row{{n}}_volume = 0.0
+		if low[i] < row{{n}}_high and high[i] > row{{n}}_low
+			bar_row{{n}}_volume := custom_volume[i]
+			bar_n_rows_affected := bar_n_rows_affected + 1
+		{% endfor %}
+		{% for n in range(n_rows) -%}
+		row{{n}}_volume := row{{n}}_volume + bar_row{{n}}_volume / bar_n_rows_affected
+		{% endfor %}
+
+{% for n in range(n_rows) %}
+row{{n}}_price = (row{{n}}_low + row{{n}}_high ) / 2
+row{{n}}_value = row{{n}}_volume / (block_high - block_low)
+{% endfor %}
+
+// plot(row0_high, color=color.blue, style=plot.style_linebr, offset=0)
+// plot(row0_low, color=color.blue, style=plot.style_linebr, offset=0)
+
 highest_row_value = 0.0
-if block_bar == block_size - 1
+float vpoc_price = na
+if not na(block_end_index)
 	{% for n in range(n_rows) -%}
 	if highest_row_value < row{{n}}_value
 		highest_row_value := row{{n}}_value
@@ -85,15 +259,9 @@ else
 
 highest_row_value_avg = ema(highest_row_value, filter_size)
 
-// plot(row0_value)
-// plot(highest_row_value, color=color.yellow)
-// plot(highest_row_value_avg, color=color.blue)
-
-{% for n in range(n_rows) -%}
-row{{n}}_width = floor(visual_row_width * row{{n}}_value / highest_row_value_avg[block_bar+1])
+{% for n in range(n_rows) %}
+row{{n}}_width = floor(visual_row_width * row{{n}}_value / highest_row_value_avg)
 {% endfor %}
-
-// plot(row0_value, color=color.red, style=plot.style_linebr, offset=-block_size)
 
 ////
 // Draw history blocks
@@ -101,16 +269,58 @@ row{{n}}_width = floor(visual_row_width * row{{n}}_value / highest_row_value_avg
 
 // draw boudns
 
-bounds_high_y = block_bar != block_size -1 ? block_high[block_bar+1] : na
-bounds_low_y = block_bar != block_size -1 ? block_low[block_bar+1] : na
-plot(bounds_high_y, color=BOUNARY_COLOR, style=plot.style_linebr, offset=-block_size*2, title="History block high")
-plot(bounds_low_y, color=BOUNARY_COLOR, style=plot.style_linebr, offset=-block_size*2, title="History block low")
+int profile_block_index = na
+// int profile_block_bar = na
+for n = 0 to plot_offset
+	i = plot_offset - n
+	if not na(block_end_index[i])
+		profile_block_index := bar_index[i]
+		// profile_block_bar := n
+		break
 
+// plot(block_end_index, style=plot.style_linebr)
+// plot(profile_block_index, color=color.red, style=plot.style_linebr, offset=-plot_offset - 1)
+// plot(bar_index, color=color.green, style=plot.style_linebr)
+// plot(block_end_index[bar_index - profile_block_index] - bar_index + plot_offset + 1, color=color.green, style=plot.style_linebr,  offset=-plot_offset - 1)
+
+profile_high_y = block_end_index[bar_index - profile_block_index] - bar_index + plot_offset + 1 > 0 ? block_high[bar_index - profile_block_index] : na
+profile_low_y = block_end_index[bar_index - profile_block_index] - bar_index + plot_offset + 1 > 0 ? block_low[bar_index - profile_block_index] : na
+// plot(profile_high_y, color=BOUNARY_COLOR, style=plot.style_linebr, offset=-plot_offset - 1, title="History block high")
+// plot(profile_low_y, color=BOUNARY_COLOR, style=plot.style_linebr, offset=-plot_offset - 1, title="History block low")
+
+{#
 // draw profile
 
 {% for color in block_colors %}
-{% set pn = (loop.length - loop.index + 1) % loop.length + 1 -%}
+{% set color_n = loop.index %}
 {% set num_colors = loop.length -%}
+
+// profile {{ color_n }}/{{ num_colors }}
+profile{{color_n}}_block_index = if block_index[bar_index - profile_block_index] % {{ num_colors }} == {{ color_n - 1 }}
+	profile_block_index
+else
+	na
+profile{{color_n}}_block_index := fixnan(profile{{color_n}}_block_index)
+
+profile{{color_n}}_block_start_index = block_start_index[bar_index - profile{{color_n}}_block_index]
+profile{{color_n}}_block_end_index = block_end_index[bar_index - profile{{color_n}}_block_index]
+
+// plot(profile{{color_n}}_block_start_index, color=PROFILE{{color_n}}_COLOR, style=plot.style_linebr, offset=-plot_offset - 1)
+// plot(profile{{color_n}}_block_end_index, color=PROFILE{{color_n}}_COLOR, style=plot.style_linebr, offset=-plot_offset - 1)
+
+{% for n in range(n_rows) %}
+profile{{color_n}}_row{{n}}_y =
+	bar_index - plot_offset - 1 >= profile{{color_n}}_block_start_index and
+	bar_index - plot_offset - 1 - profile{{color_n}}_block_start_index <= row{{n}}_width[bar_index - profile{{color_n}}_block_index] ?
+	row{{n}}_price[bar_index - profile{{color_n}}_block_index] : na
+plot(profile{{color_n}}_row{{n}}_y, color=PROFILE{{color_n}}_COLOR, style=plot.style_linebr, linewidth=2, offset=-plot_offset - 1, title="History {{color_n}} row {{n}}")
+{% endfor %}
+
+// plot(profile{{color_n}}_block_index, color=PROFILE{{color_n}}_COLOR, style=plot.style_linebr, offset=-plot_offset - 1)
+{% endfor %}
+
+// plot(profile_block_index, color=color.red, style=plot.style_linebr, offset=-plot_offset - 1)
+// plot(bar_index, color=color.red, style=plot.style_linebr)
 
 history{{pn}}_block_bar = (block_index + {{loop.index}}) % {{num_colors}} * block_size + block_bar
 
@@ -270,3 +480,4 @@ if barstate.islast
 		0
 
 	{% endfor %}
+#}
