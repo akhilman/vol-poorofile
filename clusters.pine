@@ -29,7 +29,7 @@ PROFILE{{loop.index}}_COLOR = color.{{color}}
 {%- endfor %}
 VPOC_COLOR = color.{{vpoc_color}}
 
-custom_volume = use_custom_volume_source ? security(volume_source_symbol, timeframe.period, volume) : volume
+custom_volume = use_custom_volume_source ? security(volume_source_symbol, timeframe.period, volume, lookahead=barmerge.lookahead_on) : volume
 
 ////
 // Calculate profiles

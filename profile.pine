@@ -25,7 +25,7 @@ BOUNDS_COLOR = color.{{profile_color}}
 PROFILE_COLOR = color.new(color.{{profile_color}}, 50)
 PEAK_COLOR = color.new(color.{{peak_color}}, 50)
 
-custom_volume = use_custom_volume_source ? security(volume_source_symbol, timeframe.period, volume) : volume
+custom_volume = use_custom_volume_source ? security(volume_source_symbol, timeframe.period, volume, lookahead=barmerge.lookahead_on) : volume
 
 ////
 // Calculate profile
